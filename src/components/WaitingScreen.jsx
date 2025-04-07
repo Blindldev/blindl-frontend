@@ -1,332 +1,41 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   VStack,
   Text,
-  Spinner,
   Container,
   Heading,
-  Avatar,
-  SimpleGrid,
-  Badge,
-  Progress,
-  useColorModeValue,
   Button,
-  Grid,
-  useToast,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Select,
-  useDisclosure,
+  useColorMode,
+  HStack,
+  Divider,
   Wrap,
   WrapItem,
-  HStack,
-  Icon,
-  Link,
-  useColorMode,
-  Center,
+  Badge,
+  Input,
+  Select,
+  Textarea,
+  IconButton,
+  useToast,
+  Tag,
+  TagLabel,
+  TagCloseButton,
 } from '@chakra-ui/react';
-import { FaInstagram } from 'react-icons/fa';
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import BlurredProfiles from './BlurredProfiles';
-
-const MemoryGame = () => {
-  const [cards, setCards] = useState([]);
-  const [flippedCards, setFlippedCards] = useState([]);
-  const [matchedPairs, setMatchedPairs] = useState(0);
-  const [moves, setMoves] = useState(0);
-  const [gameStarted, setGameStarted] = useState(false);
-  const [gameComplete, setGameComplete] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const emojis = ['❤️', '💖', '💝', '💕', '💗', '💓', '💞', '💟'];
-  const totalPairs = emojis.length;
-
-  const initializeGame = () => {
-    setIsLoading(true);
-    const duplicatedEmojis = [...emojis, ...emojis];
-    const shuffledCards = duplicatedEmojis
-      .sort(() => Math.random() - 0.5)
-      .map((emoji, index) => ({
-        id: index,
-        emoji,
-        isFlipped: false,
-        isMatched: false
-      }));
-    setCards(shuffledCards);
-    setFlippedCards([]);
-    setMatchedPairs(0);
-    setMoves(0);
-    setGameStarted(false);
-    setGameComplete(false);
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    initializeGame();
-  }, [initializeGame]);
-
-  const handleCardClick = (cardId) => {
-    if (!gameStarted) {
-      setGameStarted(true);
-    }
-
-    if (flippedCards.length === 2 || cards[cardId].isFlipped || cards[cardId].isMatched) {
-      return;
-    }
-
-    const newCards = cards.map(card =>
-      card.id === cardId ? { ...card, isFlipped: true } : card
-    );
-    setCards(newCards);
-
-    const newFlippedCards = [...flippedCards, cardId];
-    setFlippedCards(newFlippedCards);
-
-    if (newFlippedCards.length === 2) {
-      setMoves(prev => prev + 1);
-      const [firstCard, secondCard] = newFlippedCards;
-      
-      if (cards[firstCard].emoji === cards[secondCard].emoji) {
-        const matchedCards = newCards.map(card =>
-          card.id === firstCard || card.id === secondCard
-            ? { ...card, isMatched: true }
-            : card
-        );
-        setCards(matchedCards);
-        setFlippedCards([]);
-        setMatchedPairs(prev => prev + 1);
-        
-        if (matchedPairs + 1 === totalPairs) {
-          setGameComplete(true);
-        }
-      } else {
-        setTimeout(() => {
-          const resetCards = newCards.map(card =>
-            card.id === firstCard || card.id === secondCard
-              ? { ...card, isFlipped: false }
-              : card
-          );
-          setCards(resetCards);
-          setFlippedCards([]);
-        }, 1000);
-      }
-    }
-  };
-
-  if (isLoading) {
-    return <Text>Loading game...</Text>;
-  }
-
-  return (
-    <VStack spacing={4} w="100%">
-      <Heading size="md">Match the Emojis</Heading>
-      <SimpleGrid columns={4} spacing={2} w="100%">
-        {cards.map(card => (
-          <Box
-            key={card.id}
-            onClick={() => handleCardClick(card.id)}
-            cursor="pointer"
-            bg={card.isFlipped || card.isMatched ? 'blue.100' : 'gray.100'}
-            p={4}
-            borderRadius="md"
-            textAlign="center"
-            fontSize="2xl"
-            transition="all 0.3s"
-            _hover={{ transform: 'scale(1.05)' }}
-            minH="60px"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-          >
-            {(card.isFlipped || card.isMatched) && card.emoji}
-          </Box>
-        ))}
-      </SimpleGrid>
-      <SimpleGrid columns={2} spacing={4} w="100%">
-        <Text>Moves: {moves}</Text>
-        <Text>Pairs Found: {matchedPairs}/{totalPairs}</Text>
-      </SimpleGrid>
-      {gameComplete && (
-        <VStack spacing={2}>
-          <Text color="green.500" fontWeight="bold">Congratulations! You won!</Text>
-          <Button colorScheme="blue" onClick={initializeGame}>
-            Play Again
-          </Button>
-        </VStack>
-      )}
-      {!gameComplete && gameStarted && (
-        <Button colorScheme="blue" onClick={initializeGame}>
-          Reset Game
-        </Button>
-      )}
-    </VStack>
-  );
-};
-
-const EditProfileModal = ({ isOpen, onClose, profile, onUpdate }) => {
-  const [editedProfile, setEditedProfile] = useState(profile);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onUpdate(editedProfile);
-    onClose();
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Edit Your Profile</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody pb={6}>
-          <form onSubmit={handleSubmit}>
-            <VStack spacing={4}>
-              <FormControl>
-                <FormLabel>Name</FormLabel>
-                <Input
-                  value={editedProfile.name}
-                  onChange={(e) => setEditedProfile({...editedProfile, name: e.target.value})}
-                  placeholder="Your full name"
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Age</FormLabel>
-                <Input
-                  type="number"
-                  value={editedProfile.age}
-                  onChange={(e) => setEditedProfile({...editedProfile, age: e.target.value})}
-                  placeholder="Your age"
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Location</FormLabel>
-                <Input
-                  value={editedProfile.location}
-                  onChange={(e) => setEditedProfile({...editedProfile, location: e.target.value})}
-                  placeholder="City, Country"
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Occupation</FormLabel>
-                <Input
-                  value={editedProfile.occupation}
-                  onChange={(e) => setEditedProfile({...editedProfile, occupation: e.target.value})}
-                  placeholder="Your profession"
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Education</FormLabel>
-                <Input
-                  value={editedProfile.education}
-                  onChange={(e) => setEditedProfile({...editedProfile, education: e.target.value})}
-                  placeholder="Your education level"
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Bio</FormLabel>
-                <Textarea
-                  value={editedProfile.bio}
-                  onChange={(e) => setEditedProfile({...editedProfile, bio: e.target.value})}
-                  placeholder="Tell us about yourself..."
-                  rows={4}
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Profile Photo URL</FormLabel>
-                <Input
-                  type="url"
-                  value={editedProfile.photo}
-                  onChange={(e) => setEditedProfile({...editedProfile, photo: e.target.value})}
-                  placeholder="https://example.com/your-photo.jpg"
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Interests</FormLabel>
-                <Textarea
-                  value={editedProfile.interests}
-                  onChange={(e) => setEditedProfile({...editedProfile, interests: e.target.value})}
-                  placeholder="What are you passionate about?"
-                  rows={2}
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Hobbies</FormLabel>
-                <Textarea
-                  value={editedProfile.hobbies}
-                  onChange={(e) => setEditedProfile({...editedProfile, hobbies: e.target.value})}
-                  placeholder="What do you like to do in your free time?"
-                  rows={2}
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Languages</FormLabel>
-                <Input
-                  value={editedProfile.languages}
-                  onChange={(e) => setEditedProfile({...editedProfile, languages: e.target.value})}
-                  placeholder="Languages you speak"
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Relationship Goals</FormLabel>
-                <Select
-                  value={editedProfile.relationshipGoals}
-                  onChange={(e) => setEditedProfile({...editedProfile, relationshipGoals: e.target.value})}
-                >
-                  <option value="">Select your relationship goals</option>
-                  <option value="casual">Casual Dating</option>
-                  <option value="serious">Serious Relationship</option>
-                  <option value="marriage">Marriage</option>
-                  <option value="friendship">Friendship</option>
-                </Select>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Deal Breakers</FormLabel>
-                <Textarea
-                  value={editedProfile.dealBreakers}
-                  onChange={(e) => setEditedProfile({...editedProfile, dealBreakers: e.target.value})}
-                  placeholder="What are your deal breakers?"
-                  rows={2}
-                />
-              </FormControl>
-
-              <Button type="submit" colorScheme="blue" width="full">
-                Save Changes
-              </Button>
-            </VStack>
-          </form>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
-  );
-};
+import { FaEdit, FaCheck, FaTimes, FaPlus } from 'react-icons/fa';
+import { API_URL } from '../config';
 
 const WaitingScreen = () => {
   const navigate = useNavigate();
   const { profile, setProfile } = useProfile();
   const { colorMode } = useColorMode();
   const toast = useToast();
+  const [editingField, setEditingField] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [newArrayItem, setNewArrayItem] = useState('');
 
   useEffect(() => {
     if (!profile) {
@@ -339,6 +48,257 @@ const WaitingScreen = () => {
     setProfile(null);
     localStorage.removeItem('profile');
     navigate('/');
+  };
+
+  const handleEditClick = (field, value) => {
+    setEditingField(field);
+    setEditValue(value);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingField(null);
+    setEditValue('');
+    setNewArrayItem('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingField) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/profiles/${profile.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...profile,
+          [editingField]: editValue
+        }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      const updatedProfile = await response.json();
+      setProfile(updatedProfile);
+      localStorage.setItem('profile', JSON.stringify(updatedProfile));
+      
+      toast({
+        title: 'Success!',
+        description: 'Profile updated successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setEditingField(null);
+      setEditValue('');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddArrayItem = async (field) => {
+    if (!newArrayItem.trim()) return;
+
+    const updatedArray = [...(profile[field] || []), newArrayItem.trim()];
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/profiles/${profile.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...profile,
+          [field]: updatedArray
+        }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      const updatedProfile = await response.json();
+      setProfile(updatedProfile);
+      localStorage.setItem('profile', JSON.stringify(updatedProfile));
+      
+      toast({
+        title: 'Success!',
+        description: 'Item added successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setNewArrayItem('');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveArrayItem = async (field, item) => {
+    const updatedArray = profile[field].filter(i => i !== item);
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/profiles/${profile.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...profile,
+          [field]: updatedArray
+        }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      const updatedProfile = await response.json();
+      setProfile(updatedProfile);
+      localStorage.setItem('profile', JSON.stringify(updatedProfile));
+      
+      toast({
+        title: 'Success!',
+        description: 'Item removed successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderEditableField = (label, field, value) => {
+    if (editingField === field) {
+      return (
+        <HStack spacing={2}>
+          {field === 'bio' ? (
+            <Textarea
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              size="sm"
+            />
+          ) : field === 'gender' || field === 'lookingFor' ? (
+            <Select
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              size="sm"
+            >
+              {field === 'gender' ? (
+                <>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </>
+              ) : (
+                <>
+                  <option value="men">Men</option>
+                  <option value="women">Women</option>
+                  <option value="both">Both</option>
+                </>
+              )}
+            </Select>
+          ) : (
+            <Input
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              size="sm"
+            />
+          )}
+          <IconButton
+            icon={<FaCheck />}
+            size="sm"
+            colorScheme="green"
+            onClick={handleSaveEdit}
+            isLoading={isLoading}
+          />
+          <IconButton
+            icon={<FaTimes />}
+            size="sm"
+            colorScheme="red"
+            onClick={handleCancelEdit}
+          />
+        </HStack>
+      );
+    }
+
+    return (
+      <HStack spacing={2}>
+        <Text>{value}</Text>
+        <IconButton
+          icon={<FaEdit />}
+          size="sm"
+          onClick={() => handleEditClick(field, value)}
+        />
+      </HStack>
+    );
+  };
+
+  const renderArrayField = (label, field) => {
+    return (
+      <VStack align="start" spacing={2}>
+        <HStack spacing={2}>
+          <Input
+            value={newArrayItem}
+            onChange={(e) => setNewArrayItem(e.target.value)}
+            placeholder={`Add new ${label.toLowerCase()}`}
+            size="sm"
+          />
+          <IconButton
+            icon={<FaPlus />}
+            size="sm"
+            colorScheme="blue"
+            onClick={() => handleAddArrayItem(field)}
+            isLoading={isLoading}
+          />
+        </HStack>
+        <Wrap spacing={2}>
+          {profile[field]?.map((item, index) => (
+            <WrapItem key={index}>
+              <Tag size="md" borderRadius="full" variant="solid" colorScheme="blue">
+                <TagLabel>{item}</TagLabel>
+                <TagCloseButton onClick={() => handleRemoveArrayItem(field, item)} />
+              </Tag>
+            </WrapItem>
+          ))}
+        </Wrap>
+      </VStack>
+    );
   };
 
   return (
@@ -359,34 +319,63 @@ const WaitingScreen = () => {
             boxShadow="lg"
             width="100%"
           >
-            <VStack spacing={6}>
-              <Center>
-                <Spinner size="xl" color="blue.500" />
-              </Center>
-              <Heading size="md">Finding Your Perfect Match</Heading>
-              <Text textAlign="center">
-                We're analyzing your profile and preferences to find the best matches for you.
-                This might take a few moments...
-              </Text>
-              <Text textAlign="center" color="gray.500">
-                While you wait, why not complete your personality profile to improve your matches?
-              </Text>
-              <Button
-                colorScheme="purple"
-                onClick={() => navigate('/personality')}
-              >
-                Complete Personality Profile
-              </Button>
+            <VStack spacing={6} align="stretch">
+              <Box>
+                <Heading size="md">Basic Information</Heading>
+                <VStack align="start" spacing={2} mt={2}>
+                  <Text>Name: {profile?.name}</Text>
+                  <Text>Age: {renderEditableField('Age', 'age', profile?.age)}</Text>
+                  <Text>Gender: {renderEditableField('Gender', 'gender', profile?.gender)}</Text>
+                  <Text>Looking For: {renderEditableField('Looking For', 'lookingFor', profile?.lookingFor)}</Text>
+                  <Text>Location: {renderEditableField('Location', 'location', profile?.location)}</Text>
+                  <Text>Occupation: {renderEditableField('Occupation', 'occupation', profile?.occupation)}</Text>
+                  <Text>Education: {renderEditableField('Education', 'education', profile?.education)}</Text>
+                  <Text>Bio: {renderEditableField('Bio', 'bio', profile?.bio)}</Text>
+                </VStack>
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Heading size="md">Interests</Heading>
+                {renderArrayField('Interest', 'interests')}
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Heading size="md">Hobbies</Heading>
+                {renderArrayField('Hobby', 'hobbies')}
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Heading size="md">Languages</Heading>
+                {renderArrayField('Language', 'languages')}
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Heading size="md">Preferences</Heading>
+                <VStack align="start" spacing={2} mt={2}>
+                  <Text>Relationship Goals: {renderEditableField('Relationship Goals', 'relationshipGoals', profile?.relationshipGoals)}</Text>
+                  <Text>Smoking: {renderEditableField('Smoking', 'smoking', profile?.smoking)}</Text>
+                  <Text>Drinking: {renderEditableField('Drinking', 'drinking', profile?.drinking)}</Text>
+                </VStack>
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Heading size="md">First Date Ideas</Heading>
+                {renderArrayField('First Date Idea', 'firstDateIdeas')}
+              </Box>
             </VStack>
           </Box>
 
           <BlurredProfiles />
-
-          <Box textAlign="center" width="100%">
-            <Text fontSize="md" color="gray.500">
-              You can close the app - we'll notify you when we find a match.
-            </Text>
-          </Box>
         </VStack>
       </Container>
     </Box>

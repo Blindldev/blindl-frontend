@@ -11,6 +11,7 @@ import {
   FormLabel,
   Textarea,
   useToast,
+  HStack,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
@@ -105,7 +106,7 @@ const PersonalityQuestions = () => {
         isClosable: true,
       });
 
-      navigate('/profile');
+      navigate('/waiting');
     } catch (error) {
       toast({
         title: 'Error',

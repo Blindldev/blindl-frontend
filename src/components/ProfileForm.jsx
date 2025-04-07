@@ -1,307 +1,89 @@
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   VStack,
-  Text,
-  Container,
-  Heading,
   FormControl,
   FormLabel,
   Input,
+  Button,
   Textarea,
   Select,
-  Button,
   useToast,
+  useColorMode,
+  Text,
+  Avatar,
+  IconButton,
+  InputGroup,
+  InputRightElement,
+  InputLeftElement,
+  FormErrorMessage,
+  FormHelperText,
+  Radio,
+  RadioGroup,
+  Stack,
+  Checkbox,
+  CheckboxGroup,
+  SimpleGrid,
+  Badge,
+  Tag,
+  TagLabel,
+  TagCloseButton,
+  Flex,
+  Wrap,
+  WrapItem,
+  useDisclosure,
   Modal,
   ModalOverlay,
   ModalContent,
   ModalHeader,
   ModalBody,
   ModalCloseButton,
-  useDisclosure,
-  Wrap,
-  WrapItem,
-  HStack,
-  Icon,
-  Link,
+  ModalFooter,
+  Divider,
 } from '@chakra-ui/react';
-import { FaInstagram } from 'react-icons/fa';
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
 import { useProfile } from '../context/ProfileContext';
-import {
-  Avatar,
-  IconButton,
-  InputGroup,
-  InputRightElement,
-  Spinner,
-  Progress,
-  Alert,
-  AlertIcon,
-  useColorModeValue,
-  SimpleGrid,
-  Checkbox,
-  CheckboxGroup,
-} from '@chakra-ui/react';
-import { ViewIcon, ViewOffIcon, CheckIcon, CloseIcon } from '@chakra-ui/icons';
+import { FaCamera, FaPlus, FaMinus, FaTrash, FaEdit } from 'react-icons/fa';
 
-// Constants
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
-const MAX_DIMENSION = 800;
-const COMPRESSION_QUALITY = 0.7;
-
-const ProfileForm = () => {
+const ProfileForm = ({ initialProfile, onProfileUpdate, isEditing }) => {
   const navigate = useNavigate();
+  const { colorMode } = useColorMode();
   const { setProfile } = useProfile();
   const toast = useToast();
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-
-  // State
-  const [showPassword, setShowPassword] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadError, setUploadError] = useState(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    age: 18,
+    age: '',
+    gender: '',
+    lookingFor: '',
     location: '',
     occupation: '',
     education: '',
     bio: '',
-    photo: null,
-    interests: '',
-    hobbies: '',
-    languages: '',
+    interests: [],
+    hobbies: [],
+    languages: [],
     relationshipGoals: '',
     smoking: '',
     drinking: '',
-    firstDateIdeas: '',
-    password: '',
+    firstDateIdeas: [],
   });
 
-  const relationshipGoals = [
-    'Casual Dating',
-    'Serious Relationship',
-    'Marriage',
-    'Friendship First',
-    'Open to All'
-  ];
-
-  const interestEmojis = [
-    { emoji: '🎨', label: 'Art' },
-    { emoji: '🎵', label: 'Music' },
-    { emoji: '��', label: 'Reading' },
-    { emoji: '✈️', label: 'Travel' },
-    { emoji: '🍳', label: 'Cooking' },
-    { emoji: '🎮', label: 'Gaming' },
-    { emoji: '🏃', label: 'Fitness' },
-    { emoji: '🎬', label: 'Movies' },
-    { emoji: '📸', label: 'Photography' },
-    { emoji: '🎭', label: 'Theater' },
-    { emoji: '🏔️', label: 'Outdoors' },
-    { emoji: '🎪', label: 'Circus' },
-    { emoji: '💃', label: 'Dance' },
-    { emoji: '🎨', label: 'Design' },
-    { emoji: '👕', label: 'Fashion' }
-  ];
-
-  const hobbyEmojis = [
-    { emoji: '🏊', label: 'Swimming' },
-    { emoji: '🚴', label: 'Cycling' },
-    { emoji: '🎾', label: 'Tennis' },
-    { emoji: '🏀', label: 'Basketball' },
-    { emoji: '⚽', label: 'Soccer' },
-    { emoji: '🎯', label: 'Archery' },
-    { emoji: '🎨', label: 'Painting' },
-    { emoji: '🎸', label: 'Guitar' },
-    { emoji: '🎹', label: 'Piano' },
-    { emoji: '🎭', label: 'Acting' },
-    { emoji: '📝', label: 'Writing' },
-    { emoji: '🧘', label: 'Yoga' },
-    { emoji: '💃', label: 'Dancing' },
-    { emoji: '🌱', label: 'Gardening' },
-    { emoji: '♟️', label: 'Chess' }
-  ];
-
-  const [selectedInterests, setSelectedInterests] = useState([]);
-  const [selectedHobbies, setSelectedHobbies] = useState([]);
-
-  // Update formData when interests or hobbies change
   useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      interests: selectedInterests.join(', '),
-      hobbies: selectedHobbies.join(', ')
-    }));
-  }, [selectedInterests, selectedHobbies]);
-
-  // Memoized constants
-  const chicagoNeighborhoods = [
-    'Old Town', 'Logan Square', 'Lincoln Park', 'Lakeview', 'Wicker Park',
-    'River North', 'Gold Coast', 'West Loop', 'South Loop', 'Bucktown',
-    'Wrigleyville', 'Andersonville', 'Pilsen', 'Hyde Park', 'Lincoln Square',
-    'Ukrainian Village', 'Bridgeport', 'Ravenswood', 'Edgewater', 'Uptown'
-  ];
-
-  const firstDateIdeas = [
-    'Grab coffee at a local cafe',
-    'Take a walk in the park',
-    'Visit a museum',
-    'Go for drinks at a bar',
-    'Have dinner at a restaurant',
-    'Watch a movie',
-    'Attend a sports game',
-    'Go to a concert',
-    'Take a cooking class',
-    'Visit an art gallery',
-    'Go bowling',
-    'Take a boat tour',
-    'Visit a farmers market',
-    'Go to a comedy show',
-    'Take a pottery class'
-  ];
-
-  const educationOptions = [
-    'High School',
-    'Some College',
-    'Associate Degree',
-    'Bachelor\'s Degree',
-    'Master\'s Degree',
-    'Doctorate'
-  ];
-
-  const smokingOptions = [
-    'Just Drink',
-    'Just Smoke (cigs)',
-    'Just Smoke (weed)',
-    'Everything',
-    'None'
-  ];
-
-  const drinkingOptions = [
-    'Just Smoke (cigs)',
-    'Just Smoke (weed)',
-    'Everything',
-    'None'
-  ];
-
-  // Optimized image compression
-  const compressImage = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let { width, height } = img;
-          
-          // Calculate new dimensions while maintaining aspect ratio
-          if (width > height && width > MAX_DIMENSION) {
-            height = Math.round((height * MAX_DIMENSION) / width);
-            width = MAX_DIMENSION;
-          } else if (height > MAX_DIMENSION) {
-            width = Math.round((width * MAX_DIMENSION) / height);
-            height = MAX_DIMENSION;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                resolve(blob);
-              } else {
-                reject(new Error('Failed to compress image'));
-              }
-            },
-            file.type,
-            COMPRESSION_QUALITY
-          );
-        };
-        img.onerror = () => reject(new Error('Failed to load image'));
-        img.src = event.target.result;
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-    });
-  };
-
-  // Optimized photo upload handler
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploadError(null);
-    setUploadProgress(0);
-    setIsUploading(true);
-
-    try {
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        throw new Error('Invalid file type. Please upload JPG, PNG, or GIF.');
-      }
-
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error('File too large. Maximum size is 5MB.');
-      }
-
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      const compressedFile = await compressImage(file);
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const newPhoto = reader.result;
-        setFormData(prev => ({
-          ...prev,
-          photo: newPhoto
-        }));
-        // Immediately update the profile context
-        setProfile(prev => ({
-          ...prev,
-          photo: newPhoto
-        }));
-        setUploadProgress(100);
-        setTimeout(() => {
-          setIsUploading(false);
-          setUploadProgress(0);
-          toast({
-            title: 'Photo uploaded successfully',
-            status: 'success',
-            duration: 3000,
-            isClosable: true,
-          });
-        }, 500);
-      };
-      reader.readAsDataURL(compressedFile);
-
-    } catch (error) {
-      setIsUploading(false);
-      setUploadProgress(0);
-      setUploadError(error.message);
-      toast({
-        title: 'Upload failed',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
+    if (initialProfile) {
+      console.log('Setting initial profile data:', initialProfile);
+      setFormData({
+        ...initialProfile,
+        interests: initialProfile.interests || [],
+        hobbies: initialProfile.hobbies || [],
+        languages: initialProfile.languages || [],
+        firstDateIdeas: initialProfile.firstDateIdeas || [],
       });
     }
-  };
+  }, [initialProfile]);
 
-  // Optimized form change handler
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -310,155 +92,189 @@ const ProfileForm = () => {
     }));
   };
 
-  // Optimized form submission
+  const handleInterestChange = (e) => {
+    const input = e.target.previousElementSibling;
+    const value = input.value.trim();
+    if (value && !formData.interests.includes(value)) {
+      setFormData(prev => ({
+        ...prev,
+        interests: [...prev.interests, value]
+      }));
+      input.value = '';
+    }
+  };
+
+  const handleHobbyChange = (e) => {
+    const input = e.target.previousElementSibling;
+    const value = input.value.trim();
+    if (value && !formData.hobbies.includes(value)) {
+      setFormData(prev => ({
+        ...prev,
+        hobbies: [...prev.hobbies, value]
+      }));
+      input.value = '';
+    }
+  };
+
+  const handleLanguageChange = (e) => {
+    const input = e.target.previousElementSibling;
+    const value = input.value.trim();
+    if (value && !formData.languages.includes(value)) {
+      setFormData(prev => ({
+        ...prev,
+        languages: [...prev.languages, value]
+      }));
+      input.value = '';
+    }
+  };
+
+  const handleFirstDateIdeaChange = (e) => {
+    const input = e.target.previousElementSibling;
+    const value = input.value.trim();
+    if (value && !formData.firstDateIdeas.includes(value)) {
+      setFormData(prev => ({
+        ...prev,
+        firstDateIdeas: [...prev.firstDateIdeas, value]
+      }));
+      input.value = '';
+    }
+  };
+
+  const removeItem = (field, item) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: prev[field].filter(i => i !== item)
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/profile`, {
-        method: 'POST',
+      const url = isEditing 
+        ? `${API_URL}/api/profiles/${formData.id}`
+        : `${API_URL}/api/profiles`;
+      
+      console.log('Submitting profile update:', { url, formData, isEditing });
+      
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
+        credentials: 'include'
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create profile');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save profile');
       }
 
-      const profile = await response.json();
-      setProfile(profile);
+      const data = await response.json();
+      console.log('Profile update response:', data);
       
-      // Clear both isNewAccount and newAccountEmail flags
-      localStorage.removeItem('isNewAccount');
-      localStorage.removeItem('newAccountEmail');
-      
-      navigate('/waiting');
-      
-      toast({
-        title: 'Success!',
-        description: 'Your profile has been created.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+      if (isEditing) {
+        onProfileUpdate(data);
+        toast({
+          title: 'Success!',
+          description: 'Profile updated successfully!',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        setProfile(data);
+        localStorage.setItem('profile', JSON.stringify(data));
+        navigate('/waiting');
+        toast({
+          title: 'Success!',
+          description: 'Profile created successfully!',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
     } catch (error) {
-      console.error('Profile creation error:', error);
+      console.error('Profile update error:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create profile. Please try again.',
+        description: error.message,
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <Box maxW="container.md" mx="auto" p={4}>
+    <Box
+      p={6}
+      bg={colorMode === 'light' ? 'white' : 'gray.800'}
+      borderRadius="lg"
+      boxShadow="lg"
+    >
       <form onSubmit={handleSubmit}>
-        <VStack spacing={4}>
-          {/* Profile Photo */}
-          <FormControl>
-            <FormLabel>Profile Photo</FormLabel>
-            <VStack spacing={2}>
-              <Box position="relative">
-                <Avatar
-                  size="xl"
-                  src={formData.photo}
-                  name={formData.name}
-                  mb={2}
-                />
-                {isUploading && (
-                  <Box
-                    position="absolute"
-                    top="0"
-                    left="0"
-                    right="0"
-                    bottom="0"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    bg="blackAlpha.500"
-                    borderRadius="full"
-                  >
-                    <Spinner color="white" />
-                  </Box>
-                )}
-              </Box>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                size="sm"
-                display="none"
-                id="photo-upload"
-                disabled={isUploading}
-              />
-              <Button
-                as="label"
-                htmlFor="photo-upload"
-                colorScheme="blue"
-                size="sm"
-                cursor={isUploading ? "not-allowed" : "pointer"}
-                isLoading={isUploading}
-                loadingText="Uploading..."
-              >
-                Upload Photo
-              </Button>
-              {uploadProgress > 0 && uploadProgress < 100 && (
-                <Progress value={uploadProgress} size="sm" width="100%" />
-              )}
-              {uploadError && (
-                <Alert status="error" size="sm" borderRadius="md">
-                  <AlertIcon />
-                  {uploadError}
-                </Alert>
-              )}
-              <Text fontSize="xs" color="gray.500">
-                Supported formats: JPG, PNG, GIF (max 5MB)
-              </Text>
-            </VStack>
-          </FormControl>
-
+        <VStack spacing={6}>
           <FormControl isRequired>
             <FormLabel>Name</FormLabel>
             <Input
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Your name"
+              placeholder="Enter your name"
             />
           </FormControl>
 
           <FormControl isRequired>
             <FormLabel>Age</FormLabel>
             <Input
+              type="number"
               name="age"
               value={formData.age}
               onChange={handleChange}
-              type="number"
-              min={18}
-              max={100}
+              placeholder="Enter your age"
             />
           </FormControl>
 
           <FormControl isRequired>
-            <FormLabel>Neighborhood</FormLabel>
+            <FormLabel>Gender</FormLabel>
             <Select
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              placeholder="Select your gender"
+            >
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </Select>
+          </FormControl>
+
+          <FormControl isRequired>
+            <FormLabel>Looking For</FormLabel>
+            <Select
+              name="lookingFor"
+              value={formData.lookingFor}
+              onChange={handleChange}
+              placeholder="Select who you're looking for"
+            >
+              <option value="men">Men</option>
+              <option value="women">Women</option>
+              <option value="both">Both</option>
+            </Select>
+          </FormControl>
+
+          <FormControl isRequired>
+            <FormLabel>Location</FormLabel>
+            <Input
               name="location"
               value={formData.location}
               onChange={handleChange}
-              placeholder="Select your neighborhood"
-            >
-              {chicagoNeighborhoods.map((neighborhood) => (
-                <option key={neighborhood} value={neighborhood}>
-                  {neighborhood}
-                </option>
-              ))}
-            </Select>
+              placeholder="Enter your location"
+            />
           </FormControl>
 
           <FormControl isRequired>
@@ -467,24 +283,18 @@ const ProfileForm = () => {
               name="occupation"
               value={formData.occupation}
               onChange={handleChange}
-              placeholder="What do you do?"
+              placeholder="Enter your occupation"
             />
           </FormControl>
 
           <FormControl isRequired>
             <FormLabel>Education</FormLabel>
-            <Select
+            <Input
               name="education"
               value={formData.education}
               onChange={handleChange}
-              placeholder="Select your education level"
-            >
-              {educationOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </Select>
+              placeholder="Enter your education"
+            />
           </FormControl>
 
           <FormControl isRequired>
@@ -498,76 +308,76 @@ const ProfileForm = () => {
             />
           </FormControl>
 
-          <FormControl isRequired>
+          <FormControl>
             <FormLabel>Interests</FormLabel>
-            <SimpleGrid columns={5} spacing={2}>
-              {interestEmojis.map(({ emoji, label }) => (
-                <Checkbox
-                  key={label}
-                  isChecked={selectedInterests.includes(label)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedInterests(prev => [...prev, label]);
-                    } else {
-                      setSelectedInterests(prev => prev.filter(i => i !== label));
-                    }
-                  }}
-                  size="lg"
-                  p={2}
-                  borderRadius="md"
-                  border="1px"
-                  borderColor="gray.200"
-                  _checked={{
-                    bg: 'blue.100',
-                    borderColor: 'blue.500',
-                    color: 'blue.500',
-                  }}
-                  _hover={{
-                    bg: 'blue.50',
-                    borderColor: 'blue.300',
-                  }}
-                >
-                  <Text fontSize="2xl">{emoji}</Text>
-                  <Text fontSize="xs" mt={1}>{label}</Text>
-                </Checkbox>
+            <Input
+              placeholder="Add an interest"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleInterestChange(e);
+                }
+              }}
+            />
+            <Button mt={2} onClick={handleInterestChange}>Add Interest</Button>
+            <Wrap mt={2} spacing={2}>
+              {formData.interests.map((interest, index) => (
+                <WrapItem key={index}>
+                  <Tag size="md" borderRadius="full" variant="solid" colorScheme="blue">
+                    <TagLabel>{interest}</TagLabel>
+                    <TagCloseButton onClick={() => removeItem('interests', interest)} />
+                  </Tag>
+                </WrapItem>
               ))}
-            </SimpleGrid>
+            </Wrap>
           </FormControl>
 
-          <FormControl isRequired>
+          <FormControl>
             <FormLabel>Hobbies</FormLabel>
-            <SimpleGrid columns={5} spacing={2}>
-              {hobbyEmojis.map(({ emoji, label }) => (
-                <Checkbox
-                  key={label}
-                  isChecked={selectedHobbies.includes(label)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedHobbies(prev => [...prev, label]);
-                    } else {
-                      setSelectedHobbies(prev => prev.filter(h => h !== label));
-                    }
-                  }}
-                  size="lg"
-                  p={2}
-                  borderRadius="md"
-                  border="1px"
-                  borderColor="gray.200"
-                  _checked={{
-                    bg: 'green.100',
-                    borderColor: 'green.500',
-                    color: 'green.500',
-                  }}
-                  _hover={{
-                    bg: 'green.50',
-                    borderColor: 'green.300',
-                  }}
-                >
-                  <Text fontSize="2xl">{emoji}</Text>
-                  <Text fontSize="xs" mt={1}>{label}</Text>
-                </Checkbox>
+            <Input
+              placeholder="Add a hobby"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleHobbyChange(e);
+                }
+              }}
+            />
+            <Button mt={2} onClick={handleHobbyChange}>Add Hobby</Button>
+            <Wrap mt={2} spacing={2}>
+              {formData.hobbies.map((hobby, index) => (
+                <WrapItem key={index}>
+                  <Tag size="md" borderRadius="full" variant="solid" colorScheme="green">
+                    <TagLabel>{hobby}</TagLabel>
+                    <TagCloseButton onClick={() => removeItem('hobbies', hobby)} />
+                  </Tag>
+                </WrapItem>
               ))}
-            </SimpleGrid>
+            </Wrap>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Languages</FormLabel>
+            <Input
+              placeholder="Add a language"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleLanguageChange(e);
+                }
+              }}
+            />
+            <Button mt={2} onClick={handleLanguageChange}>Add Language</Button>
+            <Wrap mt={2} spacing={2}>
+              {formData.languages.map((language, index) => (
+                <WrapItem key={index}>
+                  <Tag size="md" borderRadius="full" variant="solid" colorScheme="purple">
+                    <TagLabel>{language}</TagLabel>
+                    <TagCloseButton onClick={() => removeItem('languages', language)} />
+                  </Tag>
+                </WrapItem>
+              ))}
+            </Wrap>
           </FormControl>
 
           <FormControl isRequired>
@@ -578,84 +388,73 @@ const ProfileForm = () => {
               onChange={handleChange}
               placeholder="Select your relationship goals"
             >
-              {relationshipGoals.map((goal) => (
-                <option key={goal} value={goal}>
-                  {goal}
-                </option>
-              ))}
+              <option value="dating">Dating</option>
+              <option value="long-term">Long-term Relationship</option>
+              <option value="marriage">Marriage</option>
+              <option value="friendship">Friendship</option>
             </Select>
           </FormControl>
 
           <FormControl isRequired>
-            <FormLabel>Smoking Preferences</FormLabel>
+            <FormLabel>Smoking</FormLabel>
             <Select
               name="smoking"
               value={formData.smoking}
               onChange={handleChange}
-              placeholder="Select your smoking preferences"
+              placeholder="Select your smoking preference"
             >
-              {smokingOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
+              <option value="never">Never</option>
+              <option value="socially">Socially</option>
+              <option value="regularly">Regularly</option>
             </Select>
           </FormControl>
 
           <FormControl isRequired>
-            <FormLabel>Drinking Preferences</FormLabel>
+            <FormLabel>Drinking</FormLabel>
             <Select
               name="drinking"
               value={formData.drinking}
               onChange={handleChange}
-              placeholder="Select your drinking preferences"
+              placeholder="Select your drinking preference"
             >
-              {drinkingOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
+              <option value="never">Never</option>
+              <option value="socially">Socially</option>
+              <option value="regularly">Regularly</option>
             </Select>
           </FormControl>
 
-          <FormControl isRequired>
+          <FormControl>
             <FormLabel>First Date Ideas</FormLabel>
-            <Select
-              name="firstDateIdeas"
-              value={formData.firstDateIdeas}
-              onChange={handleChange}
-              placeholder="Select your ideal first date"
-            >
-              {firstDateIdeas.map((idea) => (
-                <option key={idea} value={idea}>
-                  {idea}
-                </option>
+            <Input
+              placeholder="Add a first date idea"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleFirstDateIdeaChange(e);
+                }
+              }}
+            />
+            <Button mt={2} onClick={handleFirstDateIdeaChange}>Add Idea</Button>
+            <Wrap mt={2} spacing={2}>
+              {formData.firstDateIdeas.map((idea, index) => (
+                <WrapItem key={index}>
+                  <Tag size="md" borderRadius="full" variant="solid" colorScheme="orange">
+                    <TagLabel>{idea}</TagLabel>
+                    <TagCloseButton onClick={() => removeItem('firstDateIdeas', idea)} />
+                  </Tag>
+                </WrapItem>
               ))}
-            </Select>
+            </Wrap>
           </FormControl>
 
-          <FormControl isRequired>
-            <FormLabel>Password</FormLabel>
-            <InputGroup>
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Create a password"
-              />
-              <InputRightElement h={'full'}>
-                <IconButton
-                  variant={'ghost'}
-                  onClick={() => setShowPassword((showPassword) => !showPassword)}
-                  icon={showPassword ? <ViewIcon /> : <ViewOffIcon />}
-                />
-              </InputRightElement>
-            </InputGroup>
-          </FormControl>
-
-          <Button type="submit" colorScheme="blue" width="full">
-            Create Profile
+          <Button
+            type="submit"
+            colorScheme="blue"
+            width="100%"
+            isLoading={isLoading}
+            loadingText={isEditing ? 'Updating...' : 'Saving...'}
+          >
+            {isEditing ? 'Update Profile' : 'Save Profile'}
           </Button>
         </VStack>
       </form>
