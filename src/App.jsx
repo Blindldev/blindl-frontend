@@ -6,6 +6,7 @@ import ProfileForm from './components/ProfileForm';
 import WaitingScreen from './components/WaitingScreen';
 import { ProfileProvider } from './context/ProfileContext';
 import SignUp from './components/SignUp';
+import PersonalityQuestions from './components/PersonalityQuestions';
 
 function App() {
   return (
@@ -14,11 +15,13 @@ function App() {
       <ProfileProvider>
         <Router>
           <Routes>
+            <Route path="/" element={<Home />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/profile" element={<ProtectedProfileRoute><ProfileForm /></ProtectedProfileRoute>} />
             <Route path="/waiting" element={<ProtectedRoute><WaitingScreen /></ProtectedRoute>} />
-            <Route path="/" element={<ProtectedRoute><WaitingScreen /></ProtectedRoute>} />
+            <Route path="/matches" element={<Matches />} />
+            <Route path="/personality" element={<PersonalityQuestions />} />
           </Routes>
         </Router>
       </ProfileProvider>

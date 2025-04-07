@@ -64,43 +64,60 @@ const SignIn = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify(formData),
+        credentials: 'include',
+        mode: 'cors'
       });
 
-      const data = await response.json();
-
-      if (response.status === 401) {
-        setIsNewAccount(true);
-        localStorage.setItem('isNewAccount', 'true');
-        localStorage.setItem('newAccountEmail', formData.email);
-        navigate('/');
-      } else if (response.ok) {
-        setProfile(data);
-        
-        const isTestProfile = formData.email.endsWith('@example.com');
-        if (isTestProfile) {
-          navigate('/waiting');
-        } else {
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          setIsNewAccount(true);
           localStorage.setItem('isNewAccount', 'true');
           localStorage.setItem('newAccountEmail', formData.email);
-          navigate('/profile');
+          navigate('/');
+        } else {
+          throw new Error(data.error || `Failed to sign in (${response.status})`);
         }
-
-        toast({
-          title: 'Success!',
-          description: 'You have successfully signed in.',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-      } else {
-        throw new Error(data.error || 'Failed to sign in');
+        return;
       }
+
+      const data = await response.json();
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response from server');
+      }
+
+      setProfile(data);
+      
+      const isTestProfile = formData.email.endsWith('@example.com');
+      if (isTestProfile) {
+        navigate('/waiting');
+      } else {
+        localStorage.setItem('isNewAccount', 'true');
+        localStorage.setItem('newAccountEmail', formData.email);
+        navigate('/profile');
+      }
+
+      toast({
+        title: 'Success!',
+        description: 'You have successfully signed in.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (error) {
+      console.error('Sign in error:', error);
+      let errorMessage = error.message;
+      
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        errorMessage = 'Network error: Please check your internet connection';
+      }
+      
       toast({
         title: 'Error',
-        description: error.message || 'Failed to sign in. Please try again.',
+        description: errorMessage || 'Failed to sign in. Please try again.',
         status: 'error',
         duration: 5000,
         isClosable: true,
