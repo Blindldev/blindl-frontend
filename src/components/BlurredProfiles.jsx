@@ -1,61 +1,146 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text } from '@chakra-ui/react';
+import {
+  Box,
+  VStack,
+  Text,
+  Heading,
+  useColorMode,
+  HStack,
+  Badge,
+  useToast,
+  Skeleton,
+  SkeletonText,
+  Container,
+  SimpleGrid,
+} from '@chakra-ui/react';
+import { useProfile } from '../context/ProfileContext';
+import { API_URL } from '../config';
 
 const BlurredProfiles = () => {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const blurredProfiles = [
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&blur=20',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&blur=20',
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&blur=20',
-    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&blur=20',
-    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&blur=20'
-  ];
+  const { profile } = useProfile();
+  const { colorMode } = useColorMode();
+  const [profiles, setProfiles] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const toast = useToast();
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % blurredProfiles.length);
-    }, 2000);
+    const fetchProfiles = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/api/profiles`, {
+          credentials: 'include',
+        });
 
-    return () => clearInterval(interval);
-  }, [blurredProfiles.length]);
+        if (!response.ok) {
+          throw new Error('Failed to fetch profiles');
+        }
+
+        const data = await response.json();
+        setProfiles(data.filter(p => p.id !== profile?.id));
+      } catch (error) {
+        console.error('Error fetching profiles:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load profiles',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (profile) {
+      fetchProfiles();
+    }
+  }, [profile, toast]);
+
+  if (!profile) {
+    return null;
+  }
+
+  const ProfileSkeleton = () => (
+    <Box
+      p={6}
+      bg={colorMode === 'light' ? 'white' : 'gray.800'}
+      borderRadius="lg"
+      boxShadow="md"
+    >
+      <VStack spacing={4} align="stretch">
+        <Skeleton height="24px" width="60%" />
+        <SkeletonText noOfLines={3} spacing="4" />
+        <HStack spacing={2}>
+          <Skeleton height="20px" width="60px" />
+          <Skeleton height="20px" width="60px" />
+          <Skeleton height="20px" width="60px" />
+        </HStack>
+      </VStack>
+    </Box>
+  );
 
   return (
-    <Box 
-      display="flex" 
-      alignItems="center" 
-      justifyContent="center" 
-      minH="200px"
-      bg="gray.50"
-      borderRadius="lg"
-      p={4}
-      position="relative"
-      overflow="hidden"
-      width="100%"
-    >
-      <Box
-        position="absolute"
-        top="0"
-        left="0"
-        right="0"
-        bottom="0"
-        backgroundImage={`url(${blurredProfiles[currentImageIndex]})`}
-        backgroundSize="cover"
-        backgroundPosition="center"
-        filter="blur(20px)"
-        transform="scale(1.1)"
-      />
-      <Box
-        position="relative"
-        zIndex={1}
-        textAlign="center"
-        color="white"
-        textShadow="0 2px 4px rgba(0,0,0,0.5)"
-      >
-        <Text fontSize="xl" fontWeight="bold">
-          Finding your perfect match...
-        </Text>
-      </Box>
-    </Box>
+    <Container maxW="container.md" py={8}>
+      <VStack spacing={6} align="stretch">
+        <Heading size="md" color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>
+          Potential Matches
+        </Heading>
+        
+        {isLoading ? (
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+            <ProfileSkeleton />
+            <ProfileSkeleton />
+          </SimpleGrid>
+        ) : profiles.length === 0 ? (
+          <Box
+            p={6}
+            bg={colorMode === 'light' ? 'white' : 'gray.800'}
+            borderRadius="lg"
+            boxShadow="md"
+            textAlign="center"
+          >
+            <Text color={colorMode === 'light' ? 'gray.600' : 'gray.400'}>
+              No potential matches found yet. Check back later!
+            </Text>
+          </Box>
+        ) : (
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+            {profiles.map((p) => (
+              <Box
+                key={p.id}
+                p={6}
+                bg={colorMode === 'light' ? 'white' : 'gray.800'}
+                borderRadius="lg"
+                boxShadow="md"
+                transition="transform 0.2s"
+                _hover={{
+                  transform: 'translateY(-2px)',
+                  boxShadow: 'lg',
+                }}
+              >
+                <VStack spacing={4} align="stretch">
+                  <HStack justify="space-between">
+                    <Text fontSize="xl" fontWeight="bold" color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>
+                      {p.name}, {p.age}
+                    </Text>
+                  </HStack>
+                  
+                  <Text color={colorMode === 'light' ? 'gray.600' : 'gray.400'}>
+                    {p.bio}
+                  </Text>
+                  
+                  <HStack spacing={2}>
+                    <Badge colorScheme="purple" variant="subtle">{p.gender}</Badge>
+                    <Badge colorScheme="blue" variant="subtle">{p.location}</Badge>
+                    <Badge colorScheme="green" variant="subtle">{p.lookingFor}</Badge>
+                  </HStack>
+                </VStack>
+              </Box>
+            ))}
+          </SimpleGrid>
+        )}
+      </VStack>
+    </Container>
   );
 };
 

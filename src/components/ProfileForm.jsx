@@ -1,88 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  VStack,
-  FormControl,
-  FormLabel,
-  Input,
-  Button,
-  Textarea,
-  Select,
-  useToast,
-  useColorMode,
-  Text,
-  Avatar,
-  IconButton,
-  InputGroup,
-  InputRightElement,
-  InputLeftElement,
-  FormErrorMessage,
-  FormHelperText,
-  Radio,
-  RadioGroup,
-  Stack,
-  Checkbox,
-  CheckboxGroup,
-  SimpleGrid,
-  Badge,
-  Tag,
-  TagLabel,
-  TagCloseButton,
-  Flex,
-  Wrap,
-  WrapItem,
-  useDisclosure,
   Modal,
   ModalOverlay,
   ModalContent,
   ModalHeader,
   ModalBody,
   ModalCloseButton,
-  ModalFooter,
-  Divider,
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
+  Textarea,
+  Select,
+  VStack,
+  useToast,
+  useColorMode,
+  Box,
+  FormErrorMessage,
 } from '@chakra-ui/react';
-import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
-import { useProfile } from '../context/ProfileContext';
-import { FaCamera, FaPlus, FaMinus, FaTrash, FaEdit } from 'react-icons/fa';
 
-const ProfileForm = ({ initialProfile, onProfileUpdate, isEditing }) => {
-  const navigate = useNavigate();
+const ProfileForm = ({ isOpen, onClose, initialData = null, onProfileUpdate }) => {
   const { colorMode } = useColorMode();
-  const { setProfile } = useProfile();
   const toast = useToast();
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     age: '',
     gender: '',
-    lookingFor: '',
-    location: '',
-    occupation: '',
-    education: '',
     bio: '',
-    interests: [],
-    hobbies: [],
-    languages: [],
-    relationshipGoals: '',
-    smoking: '',
-    drinking: '',
-    firstDateIdeas: [],
+    location: '',
+    lookingFor: '',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    if (initialProfile) {
-      console.log('Setting initial profile data:', initialProfile);
+    if (initialData) {
       setFormData({
-        ...initialProfile,
-        interests: initialProfile.interests || [],
-        hobbies: initialProfile.hobbies || [],
-        languages: initialProfile.languages || [],
-        firstDateIdeas: initialProfile.firstDateIdeas || [],
+        name: initialData.name || '',
+        age: initialData.age || '',
+        gender: initialData.gender || '',
+        bio: initialData.bio || '',
+        location: initialData.location || '',
+        lookingFor: initialData.lookingFor || '',
       });
     }
-  }, [initialProfile]);
+  }, [initialData]);
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.age || isNaN(formData.age) || formData.age < 18) newErrors.age = 'Valid age is required';
+    if (!formData.gender) newErrors.gender = 'Gender is required';
+    if (!formData.bio.trim()) newErrors.bio = 'Bio is required';
+    if (!formData.location.trim()) newErrors.location = 'Location is required';
+    if (!formData.lookingFor) newErrors.lookingFor = 'Looking for is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -90,376 +65,172 @@ const ProfileForm = ({ initialProfile, onProfileUpdate, isEditing }) => {
       ...prev,
       [name]: value
     }));
-  };
-
-  const handleInterestChange = (e) => {
-    const input = e.target.previousElementSibling;
-    const value = input.value.trim();
-    if (value && !formData.interests.includes(value)) {
-      setFormData(prev => ({
+    if (errors[name]) {
+      setErrors(prev => ({
         ...prev,
-        interests: [...prev.interests, value]
+        [name]: undefined
       }));
-      input.value = '';
     }
-  };
-
-  const handleHobbyChange = (e) => {
-    const input = e.target.previousElementSibling;
-    const value = input.value.trim();
-    if (value && !formData.hobbies.includes(value)) {
-      setFormData(prev => ({
-        ...prev,
-        hobbies: [...prev.hobbies, value]
-      }));
-      input.value = '';
-    }
-  };
-
-  const handleLanguageChange = (e) => {
-    const input = e.target.previousElementSibling;
-    const value = input.value.trim();
-    if (value && !formData.languages.includes(value)) {
-      setFormData(prev => ({
-        ...prev,
-        languages: [...prev.languages, value]
-      }));
-      input.value = '';
-    }
-  };
-
-  const handleFirstDateIdeaChange = (e) => {
-    const input = e.target.previousElementSibling;
-    const value = input.value.trim();
-    if (value && !formData.firstDateIdeas.includes(value)) {
-      setFormData(prev => ({
-        ...prev,
-        firstDateIdeas: [...prev.firstDateIdeas, value]
-      }));
-      input.value = '';
-    }
-  };
-
-  const removeItem = (field, item) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].filter(i => i !== item)
-    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
     try {
-      const url = isEditing 
-        ? `${API_URL}/api/profiles/${formData.id}`
+      const url = initialData 
+        ? `${API_URL}/api/profiles/${initialData.id}`
         : `${API_URL}/api/profiles`;
       
-      console.log('Submitting profile update:', { url, formData, isEditing });
+      const method = initialData ? 'PUT' : 'POST';
       
       const response = await fetch(url, {
-        method: isEditing ? 'PUT' : 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save profile');
+        throw new Error('Failed to save profile');
       }
 
       const data = await response.json();
-      console.log('Profile update response:', data);
+      onProfileUpdate(data);
+      onClose();
       
-      if (isEditing) {
-        onProfileUpdate(data);
-        toast({
-          title: 'Success!',
-          description: 'Profile updated successfully!',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-      } else {
-        setProfile(data);
-        localStorage.setItem('profile', JSON.stringify(data));
-        navigate('/waiting');
-        toast({
-          title: 'Success!',
-          description: 'Profile created successfully!',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-    } catch (error) {
-      console.error('Profile update error:', error);
+      toast({
+        title: 'Success!',
+        description: `Profile ${initialData ? 'updated' : 'created'} successfully`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
       toast({
         title: 'Error',
-        description: error.message,
+        description: err.message,
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Box
-      p={6}
-      bg={colorMode === 'light' ? 'white' : 'gray.800'}
-      borderRadius="lg"
-      boxShadow="lg"
-    >
-      <form onSubmit={handleSubmit}>
-        <VStack spacing={6}>
-          <FormControl isRequired>
-            <FormLabel>Name</FormLabel>
-            <Input
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Enter your name"
-            />
-          </FormControl>
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <ModalOverlay />
+      <ModalContent bg={colorMode === 'light' ? 'white' : 'gray.800'}>
+        <ModalHeader color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>
+          {initialData ? 'Edit Profile' : 'Create Profile'}
+        </ModalHeader>
+        <ModalCloseButton />
+        <ModalBody pb={6}>
+          <form onSubmit={handleSubmit}>
+            <VStack spacing={4}>
+              <FormControl isInvalid={!!errors.name}>
+                <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Name</FormLabel>
+                <Input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Your name"
+                  bg={colorMode === 'light' ? 'white' : 'gray.700'}
+                />
+                <FormErrorMessage>{errors.name}</FormErrorMessage>
+              </FormControl>
 
-          <FormControl isRequired>
-            <FormLabel>Age</FormLabel>
-            <Input
-              type="number"
-              name="age"
-              value={formData.age}
-              onChange={handleChange}
-              placeholder="Enter your age"
-            />
-          </FormControl>
+              <FormControl isInvalid={!!errors.age}>
+                <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Age</FormLabel>
+                <Input
+                  name="age"
+                  type="number"
+                  value={formData.age}
+                  onChange={handleChange}
+                  placeholder="Your age"
+                  bg={colorMode === 'light' ? 'white' : 'gray.700'}
+                />
+                <FormErrorMessage>{errors.age}</FormErrorMessage>
+              </FormControl>
 
-          <FormControl isRequired>
-            <FormLabel>Gender</FormLabel>
-            <Select
-              name="gender"
-              value={formData.gender}
-              onChange={handleChange}
-              placeholder="Select your gender"
-            >
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </Select>
-          </FormControl>
+              <FormControl isInvalid={!!errors.gender}>
+                <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Gender</FormLabel>
+                <Select
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  placeholder="Select gender"
+                  bg={colorMode === 'light' ? 'white' : 'gray.700'}
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </Select>
+                <FormErrorMessage>{errors.gender}</FormErrorMessage>
+              </FormControl>
 
-          <FormControl isRequired>
-            <FormLabel>Looking For</FormLabel>
-            <Select
-              name="lookingFor"
-              value={formData.lookingFor}
-              onChange={handleChange}
-              placeholder="Select who you're looking for"
-            >
-              <option value="men">Men</option>
-              <option value="women">Women</option>
-              <option value="both">Both</option>
-            </Select>
-          </FormControl>
+              <FormControl isInvalid={!!errors.bio}>
+                <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Bio</FormLabel>
+                <Textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleChange}
+                  placeholder="Tell us about yourself"
+                  bg={colorMode === 'light' ? 'white' : 'gray.700'}
+                />
+                <FormErrorMessage>{errors.bio}</FormErrorMessage>
+              </FormControl>
 
-          <FormControl isRequired>
-            <FormLabel>Location</FormLabel>
-            <Input
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              placeholder="Enter your location"
-            />
-          </FormControl>
+              <FormControl isInvalid={!!errors.location}>
+                <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Location</FormLabel>
+                <Input
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  placeholder="Your location"
+                  bg={colorMode === 'light' ? 'white' : 'gray.700'}
+                />
+                <FormErrorMessage>{errors.location}</FormErrorMessage>
+              </FormControl>
 
-          <FormControl isRequired>
-            <FormLabel>Occupation</FormLabel>
-            <Input
-              name="occupation"
-              value={formData.occupation}
-              onChange={handleChange}
-              placeholder="Enter your occupation"
-            />
-          </FormControl>
+              <FormControl isInvalid={!!errors.lookingFor}>
+                <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Looking For</FormLabel>
+                <Select
+                  name="lookingFor"
+                  value={formData.lookingFor}
+                  onChange={handleChange}
+                  placeholder="What are you looking for?"
+                  bg={colorMode === 'light' ? 'white' : 'gray.700'}
+                >
+                  <option value="friendship">Friendship</option>
+                  <option value="dating">Dating</option>
+                  <option value="relationship">Relationship</option>
+                </Select>
+                <FormErrorMessage>{errors.lookingFor}</FormErrorMessage>
+              </FormControl>
 
-          <FormControl isRequired>
-            <FormLabel>Education</FormLabel>
-            <Input
-              name="education"
-              value={formData.education}
-              onChange={handleChange}
-              placeholder="Enter your education"
-            />
-          </FormControl>
-
-          <FormControl isRequired>
-            <FormLabel>Bio</FormLabel>
-            <Textarea
-              name="bio"
-              value={formData.bio}
-              onChange={handleChange}
-              placeholder="Tell us about yourself"
-              rows={4}
-            />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>Interests</FormLabel>
-            <Input
-              placeholder="Add an interest"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleInterestChange(e);
-                }
-              }}
-            />
-            <Button mt={2} onClick={handleInterestChange}>Add Interest</Button>
-            <Wrap mt={2} spacing={2}>
-              {formData.interests.map((interest, index) => (
-                <WrapItem key={index}>
-                  <Tag size="md" borderRadius="full" variant="solid" colorScheme="blue">
-                    <TagLabel>{interest}</TagLabel>
-                    <TagCloseButton onClick={() => removeItem('interests', interest)} />
-                  </Tag>
-                </WrapItem>
-              ))}
-            </Wrap>
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>Hobbies</FormLabel>
-            <Input
-              placeholder="Add a hobby"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleHobbyChange(e);
-                }
-              }}
-            />
-            <Button mt={2} onClick={handleHobbyChange}>Add Hobby</Button>
-            <Wrap mt={2} spacing={2}>
-              {formData.hobbies.map((hobby, index) => (
-                <WrapItem key={index}>
-                  <Tag size="md" borderRadius="full" variant="solid" colorScheme="green">
-                    <TagLabel>{hobby}</TagLabel>
-                    <TagCloseButton onClick={() => removeItem('hobbies', hobby)} />
-                  </Tag>
-                </WrapItem>
-              ))}
-            </Wrap>
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>Languages</FormLabel>
-            <Input
-              placeholder="Add a language"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleLanguageChange(e);
-                }
-              }}
-            />
-            <Button mt={2} onClick={handleLanguageChange}>Add Language</Button>
-            <Wrap mt={2} spacing={2}>
-              {formData.languages.map((language, index) => (
-                <WrapItem key={index}>
-                  <Tag size="md" borderRadius="full" variant="solid" colorScheme="purple">
-                    <TagLabel>{language}</TagLabel>
-                    <TagCloseButton onClick={() => removeItem('languages', language)} />
-                  </Tag>
-                </WrapItem>
-              ))}
-            </Wrap>
-          </FormControl>
-
-          <FormControl isRequired>
-            <FormLabel>Relationship Goals</FormLabel>
-            <Select
-              name="relationshipGoals"
-              value={formData.relationshipGoals}
-              onChange={handleChange}
-              placeholder="Select your relationship goals"
-            >
-              <option value="dating">Dating</option>
-              <option value="long-term">Long-term Relationship</option>
-              <option value="marriage">Marriage</option>
-              <option value="friendship">Friendship</option>
-            </Select>
-          </FormControl>
-
-          <FormControl isRequired>
-            <FormLabel>Smoking</FormLabel>
-            <Select
-              name="smoking"
-              value={formData.smoking}
-              onChange={handleChange}
-              placeholder="Select your smoking preference"
-            >
-              <option value="never">Never</option>
-              <option value="socially">Socially</option>
-              <option value="regularly">Regularly</option>
-            </Select>
-          </FormControl>
-
-          <FormControl isRequired>
-            <FormLabel>Drinking</FormLabel>
-            <Select
-              name="drinking"
-              value={formData.drinking}
-              onChange={handleChange}
-              placeholder="Select your drinking preference"
-            >
-              <option value="never">Never</option>
-              <option value="socially">Socially</option>
-              <option value="regularly">Regularly</option>
-            </Select>
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>First Date Ideas</FormLabel>
-            <Input
-              placeholder="Add a first date idea"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleFirstDateIdeaChange(e);
-                }
-              }}
-            />
-            <Button mt={2} onClick={handleFirstDateIdeaChange}>Add Idea</Button>
-            <Wrap mt={2} spacing={2}>
-              {formData.firstDateIdeas.map((idea, index) => (
-                <WrapItem key={index}>
-                  <Tag size="md" borderRadius="full" variant="solid" colorScheme="orange">
-                    <TagLabel>{idea}</TagLabel>
-                    <TagCloseButton onClick={() => removeItem('firstDateIdeas', idea)} />
-                  </Tag>
-                </WrapItem>
-              ))}
-            </Wrap>
-          </FormControl>
-
-          <Button
-            type="submit"
-            colorScheme="blue"
-            width="100%"
-            isLoading={isLoading}
-            loadingText={isEditing ? 'Updating...' : 'Saving...'}
-          >
-            {isEditing ? 'Update Profile' : 'Save Profile'}
-          </Button>
-        </VStack>
-      </form>
-    </Box>
+              <Box w="full" pt={4}>
+                <Button
+                  type="submit"
+                  colorScheme="blue"
+                  isLoading={isSubmitting}
+                  loadingText={initialData ? 'Updating...' : 'Creating...'}
+                  width="full"
+                >
+                  {initialData ? 'Update Profile' : 'Create Profile'}
+                </Button>
+              </Box>
+            </VStack>
+          </form>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
   );
 };
 
-export default ProfileForm;
+export default ProfileForm; 
