@@ -27,8 +27,10 @@ const BlurredProfiles = () => {
     const fetchProfiles = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${API_URL}/api/profiles`, {
-          credentials: 'include',
+        const response = await fetch(`${API_URL}/profiles`, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
 
         if (!response.ok) {
