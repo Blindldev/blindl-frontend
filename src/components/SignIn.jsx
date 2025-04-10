@@ -110,20 +110,14 @@ const SignIn = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
         body: JSON.stringify(formData),
-        credentials: 'include',
-        mode: 'cors'
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to sign in');
-      }
-
       const data = await response.json();
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid response from server');
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sign in');
       }
 
       setProfile(data);

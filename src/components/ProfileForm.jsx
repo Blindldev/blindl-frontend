@@ -131,88 +131,88 @@ const ProfileForm = ({ isOpen, onClose, initialData = null, onProfileUpdate }) =
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
-          <form onSubmit={handleSubmit}>
-            <VStack spacing={4}>
+      <form onSubmit={handleSubmit}>
+        <VStack spacing={4}>
               <FormControl isInvalid={!!errors.name}>
                 <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Name</FormLabel>
-                <Input
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Your name"
+            <Input
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Your name"
                   bg={colorMode === 'light' ? 'white' : 'gray.700'}
-                />
+            />
                 <FormErrorMessage>{errors.name}</FormErrorMessage>
-              </FormControl>
+          </FormControl>
 
               <FormControl isInvalid={!!errors.age}>
                 <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Age</FormLabel>
-                <Input
-                  name="age"
+            <Input
+              name="age"
                   type="number"
-                  value={formData.age}
-                  onChange={handleChange}
+              value={formData.age}
+              onChange={handleChange}
                   placeholder="Your age"
                   bg={colorMode === 'light' ? 'white' : 'gray.700'}
-                />
+            />
                 <FormErrorMessage>{errors.age}</FormErrorMessage>
-              </FormControl>
+          </FormControl>
 
               <FormControl isInvalid={!!errors.gender}>
                 <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Gender</FormLabel>
-                <Select
+            <Select
                   name="gender"
                   value={formData.gender}
-                  onChange={handleChange}
+              onChange={handleChange}
                   placeholder="Select gender"
                   bg={colorMode === 'light' ? 'white' : 'gray.700'}
                 >
                   <option value="male">Male</option>
                   <option value="female">Female</option>
                   <option value="other">Other</option>
-                </Select>
+            </Select>
                 <FormErrorMessage>{errors.gender}</FormErrorMessage>
-              </FormControl>
+          </FormControl>
 
               <FormControl isInvalid={!!errors.bio}>
                 <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Bio</FormLabel>
-                <Textarea
-                  name="bio"
-                  value={formData.bio}
-                  onChange={handleChange}
-                  placeholder="Tell us about yourself"
+            <Textarea
+              name="bio"
+              value={formData.bio}
+              onChange={handleChange}
+              placeholder="Tell us about yourself"
                   bg={colorMode === 'light' ? 'white' : 'gray.700'}
-                />
+            />
                 <FormErrorMessage>{errors.bio}</FormErrorMessage>
-              </FormControl>
+          </FormControl>
 
               <FormControl isInvalid={!!errors.location}>
                 <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Location</FormLabel>
                 <Input
                   name="location"
                   value={formData.location}
-                  onChange={handleChange}
+              onChange={handleChange}
                   placeholder="Your location"
                   bg={colorMode === 'light' ? 'white' : 'gray.700'}
                 />
                 <FormErrorMessage>{errors.location}</FormErrorMessage>
-              </FormControl>
+          </FormControl>
 
               <FormControl isInvalid={!!errors.lookingFor}>
                 <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>Looking For</FormLabel>
-                <Select
+            <Select
                   name="lookingFor"
                   value={formData.lookingFor}
-                  onChange={handleChange}
+              onChange={handleChange}
                   placeholder="What are you looking for?"
                   bg={colorMode === 'light' ? 'white' : 'gray.700'}
                 >
                   <option value="friendship">Friendship</option>
                   <option value="dating">Dating</option>
                   <option value="relationship">Relationship</option>
-                </Select>
+            </Select>
                 <FormErrorMessage>{errors.lookingFor}</FormErrorMessage>
-              </FormControl>
+          </FormControl>
 
               <Box w="full" pt={4}>
                 <Button
@@ -223,14 +223,14 @@ const ProfileForm = ({ isOpen, onClose, initialData = null, onProfileUpdate }) =
                   width="full"
                 >
                   {initialData ? 'Update Profile' : 'Create Profile'}
-                </Button>
+          </Button>
               </Box>
-            </VStack>
-          </form>
+        </VStack>
+      </form>
         </ModalBody>
       </ModalContent>
     </Modal>
   );
 };
 
-export default ProfileForm; 
+export default ProfileForm;
