@@ -1,1 +1,1 @@
-export const API_URL = 'https://dating-app-backend-0gej.onrender.com'; 
+export const API_URL = 'https://dating-app-backend-0gej.onrender.com/api'; 

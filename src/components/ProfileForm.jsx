@@ -18,7 +18,7 @@ import {
   Box,
   FormErrorMessage,
 } from '@chakra-ui/react';
-import { API_URL } from '../config';
+const API_URL = 'http://localhost:3002/api';
 
 const ProfileForm = ({ isOpen, onClose, initialData = null, onProfileUpdate }) => {
   const { colorMode } = useColorMode();
@@ -80,8 +80,8 @@ const ProfileForm = ({ isOpen, onClose, initialData = null, onProfileUpdate }) =
     setIsSubmitting(true);
     try {
       const url = initialData 
-        ? `${API_URL}/api/profiles/${initialData.id}`
-        : `${API_URL}/api/profiles`;
+        ? `${API_URL}/profiles/${initialData.id}`
+        : `${API_URL}/profiles`;
       
       const method = initialData ? 'PUT' : 'POST';
       
