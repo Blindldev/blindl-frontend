@@ -208,7 +208,7 @@ const WaitingScreen = () => {
             {/* Personality Profile */}
             <VStack align="start" spacing={2}>
               <Heading size="md">Personality Profile</Heading>
-              {Object.entries(profile.personality).map(([trait, value]) => (
+              {profile.personality && Object.entries(profile.personality).map(([trait, value]) => (
                 <Box key={trait} width="100%">
                   <HStack justify="space-between" mb={1}>
                     <Text>{trait.charAt(0).toUpperCase() + trait.slice(1)}</Text>
@@ -222,6 +222,9 @@ const WaitingScreen = () => {
                   />
                 </Box>
               ))}
+              {!profile.personality && (
+                <Text color="gray.500">Personality profile not available</Text>
+              )}
             </VStack>
           </VStack>
         </Box>

@@ -27,7 +27,28 @@ export const ProfileProvider = ({ children }) => {
       }
 
       const data = await response.json();
-      setProfile(data);
+      // Ensure profile has all required fields with default values
+      const defaultProfile = {
+        name: '',
+        age: '',
+        gender: '',
+        lookingFor: '',
+        location: '',
+        occupation: '',
+        education: '',
+        bio: '',
+        interests: [],
+        hobbies: [],
+        languages: [],
+        photos: [],
+        relationshipGoals: '',
+        smoking: '',
+        drinking: '',
+        firstDateIdeas: [],
+        personality: {},
+        ...data
+      };
+      setProfile(defaultProfile);
     } catch (error) {
       console.error('Error fetching profile:', error);
       setError(error.message);
@@ -64,8 +85,29 @@ export const ProfileProvider = ({ children }) => {
       }
 
       const data = await response.json();
-      setProfile(data);
-      return data;
+      // Ensure updated profile has all required fields with default values
+      const defaultProfile = {
+        name: '',
+        age: '',
+        gender: '',
+        lookingFor: '',
+        location: '',
+        occupation: '',
+        education: '',
+        bio: '',
+        interests: [],
+        hobbies: [],
+        languages: [],
+        photos: [],
+        relationshipGoals: '',
+        smoking: '',
+        drinking: '',
+        firstDateIdeas: [],
+        personality: {},
+        ...data
+      };
+      setProfile(defaultProfile);
+      return defaultProfile;
     } catch (error) {
       console.error('Error updating profile:', error);
       setError(error.message);
