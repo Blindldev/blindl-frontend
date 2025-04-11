@@ -11,6 +11,7 @@ import {
   useToast,
   HStack,
   IconButton,
+  Container,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
@@ -164,95 +165,102 @@ const SignIn = () => {
   };
 
   return (
-    <Box maxW="md" mx="auto" mt={8} p={6} borderWidth={1} borderRadius={8} boxShadow="lg">
-      <VStack spacing={6}>
-        <Heading>{isNewAccount ? 'Create Account' : 'Sign In'}</Heading>
-        
-        {!emailVerified ? (
-          <form onSubmit={handleEmailSubmit} style={{ width: '100%' }}>
-            <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Email</FormLabel>
-                <Input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  disabled={isLoading}
-                />
-              </FormControl>
-              <Button 
-                type="submit" 
-                colorScheme="blue" 
-                width="100%"
-                isLoading={isLoading}
-                loadingText="Verifying..."
-              >
-                Continue
-              </Button>
-              <Button
-                variant="outline"
-                colorScheme="green"
-                onClick={loadRandomTestProfile}
-                width="100%"
-                isDisabled={isLoading}
-              >
-                Load Test Profile
-              </Button>
-            </VStack>
-          </form>
-        ) : (
-          <form onSubmit={handlePasswordSubmit} style={{ width: '100%' }}>
-            <VStack spacing={4}>
-              <HStack width="100%" justify="space-between" align="center">
-                <Text>Email: {formData.email}</Text>
-                <IconButton
-                  aria-label="Edit email"
-                  icon="✏️"
-                  variant="ghost"
-                  onClick={handleBackToEmail}
-                  size="sm"
-                />
-              </HStack>
-              <FormControl isRequired>
-                <FormLabel>Password</FormLabel>
-                <Input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Enter your password"
-                  disabled={isLoading}
-                />
-              </FormControl>
-              {isNewAccount && (
+    <Container maxW="container.sm" py={10}>
+      <Box
+        p={8}
+        borderWidth={1}
+        borderRadius="lg"
+        boxShadow="lg"
+      >
+        <VStack spacing={6}>
+          <Heading>{isNewAccount ? 'Create Account' : 'Sign In'}</Heading>
+          
+          {!emailVerified ? (
+            <form onSubmit={handleEmailSubmit} style={{ width: '100%' }}>
+              <VStack spacing={4}>
                 <FormControl isRequired>
-                  <FormLabel>Confirm Password</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <Input
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
+                    type="email"
+                    name="email"
+                    value={formData.email}
                     onChange={handleChange}
-                    placeholder="Confirm your password"
+                    placeholder="Enter your email"
                     disabled={isLoading}
                   />
                 </FormControl>
-              )}
-              <Button
-                type="submit"
-                colorScheme="blue"
-                width="100%"
-                isLoading={isLoading}
-                loadingText={isNewAccount ? 'Creating Account...' : 'Signing in...'}
-              >
-                {isNewAccount ? 'Create Account' : 'Sign In'}
-              </Button>
-            </VStack>
-          </form>
-        )}
-      </VStack>
-    </Box>
+                <Button 
+                  type="submit" 
+                  colorScheme="blue" 
+                  width="100%"
+                  isLoading={isLoading}
+                  loadingText="Verifying..."
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="outline"
+                  colorScheme="green"
+                  onClick={loadRandomTestProfile}
+                  width="100%"
+                  isDisabled={isLoading}
+                >
+                  Load Test Profile
+                </Button>
+              </VStack>
+            </form>
+          ) : (
+            <form onSubmit={handlePasswordSubmit} style={{ width: '100%' }}>
+              <VStack spacing={4}>
+                <HStack width="100%" justify="space-between" align="center">
+                  <Text>Email: {formData.email}</Text>
+                  <IconButton
+                    aria-label="Edit email"
+                    icon="✏️"
+                    variant="ghost"
+                    onClick={handleBackToEmail}
+                    size="sm"
+                  />
+                </HStack>
+                <FormControl isRequired>
+                  <FormLabel>Password</FormLabel>
+                  <Input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Enter your password"
+                    disabled={isLoading}
+                  />
+                </FormControl>
+                {isNewAccount && (
+                  <FormControl isRequired>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <Input
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Confirm your password"
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                )}
+                <Button
+                  type="submit"
+                  colorScheme="blue"
+                  width="100%"
+                  isLoading={isLoading}
+                  loadingText={isNewAccount ? 'Creating Account...' : 'Signing in...'}
+                >
+                  {isNewAccount ? 'Create Account' : 'Sign In'}
+                </Button>
+              </VStack>
+            </form>
+          )}
+        </VStack>
+      </Box>
+    </Container>
   );
 };
 
