@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'r
 import SignIn from './components/SignIn';
 import ProfileForm from './components/ProfileForm';
 import WaitingScreen from './components/WaitingScreen';
-import { ProfileProvider } from './context/ProfileContext';
+import { ProfileProvider, useProfile } from './context/ProfileContext';
 import SignUp from './components/SignUp';
 import PersonalityQuestions from './components/PersonalityQuestions';
 
@@ -14,6 +14,7 @@ function App() {
       <CSSReset />
       <ProfileProvider>
         <Router>
+          <ProfileLoader />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/signin" element={<SignIn />} />
@@ -28,6 +29,26 @@ function App() {
     </ChakraProvider>
   );
 }
+
+// Component to load profile from localStorage into context
+const ProfileLoader = () => {
+  const { setProfile } = useProfile();
+
+  useEffect(() => {
+    const storedProfile = localStorage.getItem('profile');
+    if (storedProfile) {
+      try {
+        const profile = JSON.parse(storedProfile);
+        setProfile(profile);
+      } catch (error) {
+        console.error('Error parsing stored profile:', error);
+        localStorage.removeItem('profile');
+      }
+    }
+  }, [setProfile]);
+
+  return null;
+};
 
 // Protected route component for waiting screen
 const ProtectedRoute = ({ children }) => {
