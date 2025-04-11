@@ -67,9 +67,17 @@ const SignIn = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({ email: formData.email }),
       });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server did not return JSON');
+      }
+
+      const data = await response.json();
 
       if (response.status === 404) {
         setIsNewAccount(true);
@@ -84,7 +92,7 @@ const SignIn = () => {
       } else if (response.ok) {
         setEmailVerified(true);
       } else {
-        throw new Error('Failed to verify email');
+        throw new Error(data.message || 'Failed to verify email');
       }
     } catch (error) {
       toast({
@@ -107,14 +115,20 @@ const SignIn = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(formData),
       });
 
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server did not return JSON');
+      }
+
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to sign in');
+        throw new Error(data.message || 'Failed to sign in');
       }
 
       setProfile(data.profile);
