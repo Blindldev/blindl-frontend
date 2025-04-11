@@ -1,148 +1,91 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  VStack,
   Text,
-  Heading,
+  VStack,
   useColorMode,
-  HStack,
-  Badge,
-  useToast,
-  Skeleton,
-  SkeletonText,
-  Container,
-  SimpleGrid,
+  Card,
+  CardBody,
+  Heading,
+  Spinner,
 } from '@chakra-ui/react';
-import { useProfile } from '../context/ProfileContext';
-import { API_URL } from '../config';
 
 const BlurredProfiles = () => {
-  const { profile } = useProfile();
   const { colorMode } = useColorMode();
-  const [profiles, setProfiles] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const toast = useToast();
 
   useEffect(() => {
-    const fetchProfiles = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`${API_URL}/profiles`, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % 3);
+    }, 3000);
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch profiles');
-        }
+    // Simulate loading
+    const loadingTimer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
 
-        const data = await response.json();
-        setProfiles(data.filter(p => p.id !== profile?.id));
-      } catch (error) {
-        console.error('Error fetching profiles:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load profiles',
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-      } finally {
-        setIsLoading(false);
-      }
+    return () => {
+      clearInterval(timer);
+      clearTimeout(loadingTimer);
     };
+  }, []);
 
-    if (profile) {
-      fetchProfiles();
-    }
-  }, [profile, toast]);
+  const blurredProfiles = [
+    {
+      name: 'Potential Match 1',
+      location: 'Nearby',
+      bio: 'Looking for meaningful connections',
+    },
+    {
+      name: 'Potential Match 2',
+      location: 'Nearby',
+      bio: 'Ready to meet new people',
+    },
+    {
+      name: 'Potential Match 3',
+      location: 'Nearby',
+      bio: 'Excited to connect',
+    },
+  ];
 
-  if (!profile) {
-    return null;
+  if (isLoading) {
+    return (
+      <Card bg={colorMode === 'light' ? 'white' : 'gray.800'}>
+        <CardBody>
+          <VStack spacing={4}>
+            <Spinner size="xl" />
+            <Text>Loading potential matches...</Text>
+          </VStack>
+        </CardBody>
+      </Card>
+    );
   }
 
-  const ProfileSkeleton = () => (
-    <Box
-      p={6}
-      bg={colorMode === 'light' ? 'white' : 'gray.800'}
-      borderRadius="lg"
-      boxShadow="md"
-    >
-      <VStack spacing={4} align="stretch">
-        <Skeleton height="24px" width="60%" />
-        <SkeletonText noOfLines={3} spacing="4" />
-        <HStack spacing={2}>
-          <Skeleton height="20px" width="60px" />
-          <Skeleton height="20px" width="60px" />
-          <Skeleton height="20px" width="60px" />
-        </HStack>
-      </VStack>
-    </Box>
-  );
-
   return (
-    <Container maxW="container.md" py={8}>
-      <VStack spacing={6} align="stretch">
-        <Heading size="md" color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>
-          Potential Matches
-        </Heading>
-        
-        {isLoading ? (
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-            <ProfileSkeleton />
-            <ProfileSkeleton />
-          </SimpleGrid>
-        ) : profiles.length === 0 ? (
+    <Card bg={colorMode === 'light' ? 'white' : 'gray.800'}>
+      <CardBody>
+        <VStack spacing={4}>
+          <Heading size="md">Potential Matches</Heading>
           <Box
-            p={6}
-            bg={colorMode === 'light' ? 'white' : 'gray.800'}
-            borderRadius="lg"
-            boxShadow="md"
-            textAlign="center"
+            filter="blur(8px)"
+            transition="all 0.3s ease"
+            transform={`scale(${currentIndex === 0 ? 1 : 0.95})`}
           >
-            <Text color={colorMode === 'light' ? 'gray.600' : 'gray.400'}>
-              No potential matches found yet. Check back later!
-            </Text>
+            <VStack spacing={2}>
+              <Text fontSize="xl" fontWeight="bold">
+                {blurredProfiles[currentIndex].name}
+              </Text>
+              <Text>{blurredProfiles[currentIndex].location}</Text>
+              <Text>{blurredProfiles[currentIndex].bio}</Text>
+            </VStack>
           </Box>
-        ) : (
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-            {profiles.map((p) => (
-              <Box
-                key={p.id}
-                p={6}
-                bg={colorMode === 'light' ? 'white' : 'gray.800'}
-                borderRadius="lg"
-                boxShadow="md"
-                transition="transform 0.2s"
-                _hover={{
-                  transform: 'translateY(-2px)',
-                  boxShadow: 'lg',
-                }}
-              >
-                <VStack spacing={4} align="stretch">
-                  <HStack justify="space-between">
-                    <Text fontSize="xl" fontWeight="bold" color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>
-                      {p.name}, {p.age}
-                    </Text>
-                  </HStack>
-                  
-                  <Text color={colorMode === 'light' ? 'gray.600' : 'gray.400'}>
-                    {p.bio}
-                  </Text>
-                  
-                  <HStack spacing={2}>
-                    <Badge colorScheme="purple" variant="subtle">{p.gender}</Badge>
-                    <Badge colorScheme="blue" variant="subtle">{p.location}</Badge>
-                    <Badge colorScheme="green" variant="subtle">{p.lookingFor}</Badge>
-                  </HStack>
-                </VStack>
-              </Box>
-            ))}
-          </SimpleGrid>
-        )}
-      </VStack>
-    </Container>
+          <Text color={colorMode === 'light' ? 'gray.600' : 'gray.400'}>
+            Complete your profile to see your matches!
+          </Text>
+        </VStack>
+      </CardBody>
+    </Card>
   );
 };
 
