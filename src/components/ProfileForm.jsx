@@ -19,15 +19,6 @@ import {
   Textarea,
   Progress,
   Box,
-  Icon,
-  useColorMode,
-  Badge,
-  Divider,
-  Heading,
-  Avatar,
-  Tooltip,
-  InputGroup,
-  InputRightElement,
   NumberInput,
   NumberInputField,
   NumberInputStepper,
@@ -38,33 +29,21 @@ import {
   SliderFilledTrack,
   SliderThumb,
   SliderMark,
-  Collapse,
-  Alert,
-  AlertIcon,
-  AlertTitle,
-  AlertDescription,
-  CloseButton,
-  Spinner,
+  Tag,
+  TagLabel,
+  TagCloseButton,
+  Wrap,
+  WrapItem,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
 import {
-  FaUser,
-  FaHeart,
-  FaMapMarkerAlt,
-  FaInfoCircle,
-  FaCheck,
   FaArrowLeft,
   FaArrowRight,
-  FaBrain,
+  FaCheck,
 } from 'react-icons/fa';
 
-const MotionBox = motion(Box);
-
 const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
-  const { colorMode } = useColorMode();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showError, setShowError] = useState(false);
   const [bioLength, setBioLength] = useState(0);
   const [profile, setProfile] = useState(initialData || {
     name: '',
@@ -73,7 +52,16 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
     gender: '',
     lookingFor: '',
     bio: '',
-    photoUrl: '',
+    occupation: '',
+    education: '',
+    relationshipGoals: '',
+    smoking: '',
+    drinking: '',
+    photos: [],
+    interests: [],
+    hobbies: [],
+    languages: [],
+    firstDateIdeas: [],
     personality: {
       openness: '',
       conscientiousness: '',
@@ -83,6 +71,10 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
     },
   });
   const [errors, setErrors] = useState({});
+  const [newInterest, setNewInterest] = useState('');
+  const [newHobby, setNewHobby] = useState('');
+  const [newLanguage, setNewLanguage] = useState('');
+  const [newDateIdea, setNewDateIdea] = useState('');
   const toast = useToast();
 
   const totalSteps = 5;
@@ -102,80 +94,90 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
         if (!profile.name) newErrors.name = 'Name is required';
         if (!profile.age) newErrors.age = 'Age is required';
         if (!profile.location) newErrors.location = 'Location is required';
-        break;
-      case 2:
         if (!profile.gender) newErrors.gender = 'Gender is required';
         if (!profile.lookingFor) newErrors.lookingFor = 'Looking for is required';
         break;
+      case 2:
+        if (!profile.occupation) newErrors.occupation = 'Occupation is required';
+        if (!profile.education) newErrors.education = 'Education is required';
+        if (!profile.relationshipGoals) newErrors.relationshipGoals = 'Relationship goals are required';
+        if (!profile.smoking) newErrors.smoking = 'Smoking preference is required';
+        if (!profile.drinking) newErrors.drinking = 'Drinking preference is required';
+        break;
       case 3:
         if (!profile.bio) newErrors.bio = 'Bio is required';
-        if (profile.bio.length < 50) newErrors.bio = 'Bio should be at least 50 characters';
+        if (profile.bio.length < 50) newErrors.bio = 'Bio must be at least 50 characters';
+        if (profile.interests.length === 0) newErrors.interests = 'At least one interest is required';
+        if (profile.hobbies.length === 0) newErrors.hobbies = 'At least one hobby is required';
         break;
       case 4:
-        Object.entries(profile.personality).forEach(([key, value]) => {
-          if (!value) newErrors[`personality.${key}`] = 'This field is required';
-        });
+        if (profile.languages.length === 0) newErrors.languages = 'At least one language is required';
+        if (profile.firstDateIdeas.length === 0) newErrors.firstDateIdeas = 'At least one date idea is required';
+        break;
+      case 5:
+        if (!profile.personality.openness) newErrors.personality = 'Please complete your personality profile';
         break;
       default:
         break;
     }
     setErrors(newErrors);
-    setShowError(Object.keys(newErrors).length > 0);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
-      setShowError(false);
+      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
     }
   };
 
   const handleBack = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
-    setShowError(false);
+    setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
   const handleBioChange = (e) => {
     const value = e.target.value;
+    setProfile(prev => ({ ...prev, bio: value }));
     setBioLength(value.length);
-    setProfile({ ...profile, bio: value });
+  };
+
+  const addItem = (type, value, setValue) => {
+    if (value.trim()) {
+      setProfile(prev => ({
+        ...prev,
+        [type]: [...prev[type], value.trim()],
+      }));
+      setValue('');
+    }
+  };
+
+  const removeItem = (type, index) => {
+    setProfile(prev => ({
+      ...prev,
+      [type]: prev[type].filter((_, i) => i !== index),
+    }));
   };
 
   const handleSubmit = async () => {
     if (validateStep(currentStep)) {
       setIsSubmitting(true);
       try {
-        const response = await fetch('http://localhost:3002/api/profiles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-          body: JSON.stringify(profile),
-      });
-
-      if (!response.ok) {
-          throw new Error('Failed to update profile');
-        }
-
-        const updatedProfile = await response.json();
-        onProfileUpdate(updatedProfile);
-      toast({
-        title: 'Success!',
-          description: 'Profile updated successfully',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-        onClose();
-    } catch (error) {
-      toast({
-        title: 'Error',
-          description: 'Failed to update profile',
-        status: 'error',
+        await onProfileUpdate(profile);
+        toast({
+          title: 'Profile updated',
+          description: 'Your profile has been successfully updated.',
+          status: 'success',
           duration: 3000,
-        isClosable: true,
-      });
+          isClosable: true,
+        });
+        onClose();
+      } catch (error) {
+        toast({
+          title: 'Error updating profile',
+          description: error.message,
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
       } finally {
         setIsSubmitting(false);
       }
@@ -185,293 +187,295 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-  return (
-          <MotionBox
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <VStack spacing={6} align="stretch">
-              <Heading size="lg" color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>
-                Let's Get Started
-              </Heading>
-              <Text color={colorMode === 'light' ? 'gray.600' : 'gray.400'}>
-                Tell us a bit about yourself to help us find your perfect match.
-              </Text>
-              <FormControl isInvalid={errors.name}>
-                <FormLabel>Your Name</FormLabel>
-                <InputGroup>
-            <Input
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                    placeholder="Enter your name"
-                    size="lg"
-                  />
-                  <InputRightElement>
-                    <Icon as={FaUser} color={colorMode === 'light' ? 'gray.400' : 'gray.500'} />
-                  </InputRightElement>
-                </InputGroup>
-                <FormErrorMessage>{errors.name}</FormErrorMessage>
-          </FormControl>
-              <FormControl isInvalid={errors.age}>
-                <FormLabel>Your Age</FormLabel>
-                <NumberInput
-                  value={profile.age}
-                  onChange={(value) => setProfile({ ...profile, age: value })}
-              min={18}
-              max={100}
-                  size="lg"
-                >
-                  <NumberInputField placeholder="Enter your age" />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper />
-                    <NumberDecrementStepper />
-                  </NumberInputStepper>
-                </NumberInput>
-                <FormErrorMessage>{errors.age}</FormErrorMessage>
-          </FormControl>
-              <FormControl isInvalid={errors.location}>
-                <FormLabel>Your Location</FormLabel>
-                <InputGroup>
-            <Input
-                    value={profile.location}
-                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                    placeholder="Enter your location"
-                    size="lg"
-                  />
-                  <InputRightElement>
-                    <Icon as={FaMapMarkerAlt} color={colorMode === 'light' ? 'gray.400' : 'gray.500'} />
-                  </InputRightElement>
-                </InputGroup>
-                <FormErrorMessage>{errors.location}</FormErrorMessage>
-          </FormControl>
-            </VStack>
-          </MotionBox>
+        return (
+          <VStack spacing={4} align="stretch">
+            <FormControl isInvalid={errors.name}>
+              <FormLabel>Name</FormLabel>
+              <Input
+                value={profile.name}
+                onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Your name"
+              />
+              <FormErrorMessage>{errors.name}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.age}>
+              <FormLabel>Age</FormLabel>
+              <NumberInput
+                value={profile.age}
+                onChange={(value) => setProfile(prev => ({ ...prev, age: value }))}
+                min={18}
+                max={100}
+              >
+                <NumberInputField placeholder="Your age" />
+                <NumberInputStepper>
+                  <NumberIncrementStepper />
+                  <NumberDecrementStepper />
+                </NumberInputStepper>
+              </NumberInput>
+              <FormErrorMessage>{errors.age}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.location}>
+              <FormLabel>Location</FormLabel>
+              <Input
+                value={profile.location}
+                onChange={(e) => setProfile(prev => ({ ...prev, location: e.target.value }))}
+                placeholder="Your location"
+              />
+              <FormErrorMessage>{errors.location}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.gender}>
+              <FormLabel>Gender</FormLabel>
+              <Select
+                value={profile.gender}
+                onChange={(e) => setProfile(prev => ({ ...prev, gender: e.target.value }))}
+                placeholder="Select gender"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Non-binary">Non-binary</option>
+                <option value="Other">Other</option>
+              </Select>
+              <FormErrorMessage>{errors.gender}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.lookingFor}>
+              <FormLabel>Looking For</FormLabel>
+              <Select
+                value={profile.lookingFor}
+                onChange={(e) => setProfile(prev => ({ ...prev, lookingFor: e.target.value }))}
+                placeholder="Select preference"
+              >
+                <option value="Men">Men</option>
+                <option value="Women">Women</option>
+                <option value="Both">Both</option>
+              </Select>
+              <FormErrorMessage>{errors.lookingFor}</FormErrorMessage>
+            </FormControl>
+          </VStack>
         );
       case 2:
         return (
-          <MotionBox
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <VStack spacing={6} align="stretch">
-              <Heading size="lg" color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>
-                Your Preferences
-              </Heading>
-              <Text color={colorMode === 'light' ? 'gray.600' : 'gray.400'}>
-                Help us understand who you are and what you're looking for.
-              </Text>
-              <FormControl isInvalid={errors.gender}>
-                <FormLabel>
-                  <HStack spacing={2}>
-                    <Text>Gender</Text>
-                    <Tooltip label="This helps us find better matches for you">
-                      <Icon as={FaInfoCircle} color={colorMode === 'light' ? 'gray.400' : 'gray.500'} />
-                    </Tooltip>
-                  </HStack>
-                </FormLabel>
-            <Select
-                  value={profile.gender}
-                  onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
-                  placeholder="Select your gender"
-                  size="lg"
-                >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </Select>
-                <FormErrorMessage>{errors.gender}</FormErrorMessage>
-          </FormControl>
-              <FormControl isInvalid={errors.lookingFor}>
-                <FormLabel>
-                  <HStack spacing={2}>
-                    <Text>Looking For</Text>
-                    <Tooltip label="What kind of relationship are you interested in?">
-                      <Icon as={FaHeart} color={colorMode === 'light' ? 'gray.400' : 'gray.500'} />
-                    </Tooltip>
-                  </HStack>
-                </FormLabel>
-                <Select
-                  value={profile.lookingFor}
-                  onChange={(e) => setProfile({ ...profile, lookingFor: e.target.value })}
-                  placeholder="Select what you're looking for"
-                  size="lg"
-                >
-                  <option value="Dating">Dating</option>
-                  <option value="Friendship">Friendship</option>
-                  <option value="Relationship">Relationship</option>
-                </Select>
-                <FormErrorMessage>{errors.lookingFor}</FormErrorMessage>
-          </FormControl>
-            </VStack>
-          </MotionBox>
+          <VStack spacing={4} align="stretch">
+            <FormControl isInvalid={errors.occupation}>
+              <FormLabel>Occupation</FormLabel>
+              <Input
+                value={profile.occupation}
+                onChange={(e) => setProfile(prev => ({ ...prev, occupation: e.target.value }))}
+                placeholder="Your occupation"
+              />
+              <FormErrorMessage>{errors.occupation}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.education}>
+              <FormLabel>Education</FormLabel>
+              <Input
+                value={profile.education}
+                onChange={(e) => setProfile(prev => ({ ...prev, education: e.target.value }))}
+                placeholder="Your education"
+              />
+              <FormErrorMessage>{errors.education}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.relationshipGoals}>
+              <FormLabel>Relationship Goals</FormLabel>
+              <Select
+                value={profile.relationshipGoals}
+                onChange={(e) => setProfile(prev => ({ ...prev, relationshipGoals: e.target.value }))}
+                placeholder="Select relationship goals"
+              >
+                <option value="Dating">Dating</option>
+                <option value="Long-term Relationship">Long-term Relationship</option>
+                <option value="Marriage">Marriage</option>
+                <option value="Friendship">Friendship</option>
+              </Select>
+              <FormErrorMessage>{errors.relationshipGoals}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.smoking}>
+              <FormLabel>Smoking</FormLabel>
+              <Select
+                value={profile.smoking}
+                onChange={(e) => setProfile(prev => ({ ...prev, smoking: e.target.value }))}
+                placeholder="Select smoking preference"
+              >
+                <option value="Never">Never</option>
+                <option value="Socially">Socially</option>
+                <option value="Regularly">Regularly</option>
+              </Select>
+              <FormErrorMessage>{errors.smoking}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.drinking}>
+              <FormLabel>Drinking</FormLabel>
+              <Select
+                value={profile.drinking}
+                onChange={(e) => setProfile(prev => ({ ...prev, drinking: e.target.value }))}
+                placeholder="Select drinking preference"
+              >
+                <option value="Never">Never</option>
+                <option value="Socially">Socially</option>
+                <option value="Regularly">Regularly</option>
+              </Select>
+              <FormErrorMessage>{errors.drinking}</FormErrorMessage>
+            </FormControl>
+          </VStack>
         );
       case 3:
         return (
-          <MotionBox
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <VStack spacing={6} align="stretch">
-              <Heading size="lg" color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>
-                Your Story
-              </Heading>
-              <Text color={colorMode === 'light' ? 'gray.600' : 'gray.400'}>
-                Share a bit about yourself to help others get to know you better.
+          <VStack spacing={4} align="stretch">
+            <FormControl isInvalid={errors.bio}>
+              <FormLabel>Bio</FormLabel>
+              <Textarea
+                value={profile.bio}
+                onChange={handleBioChange}
+                placeholder="Tell us about yourself..."
+                maxLength={maxBioLength}
+              />
+              <Text fontSize="sm" color={bioLength > maxBioLength ? 'red.500' : 'gray.500'}>
+                {bioLength}/{maxBioLength} characters
               </Text>
-              <FormControl isInvalid={errors.bio}>
-                <FormLabel>About You</FormLabel>
-                <Textarea
-                  value={profile.bio}
-                  onChange={handleBioChange}
-                  placeholder="Tell us about yourself..."
-                  size="lg"
-                  rows={6}
+              <FormErrorMessage>{errors.bio}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.interests}>
+              <FormLabel>Interests</FormLabel>
+              <HStack>
+                <Input
+                  value={newInterest}
+                  onChange={(e) => setNewInterest(e.target.value)}
+                  placeholder="Add an interest"
                 />
-                <HStack justify="space-between" mt={2}>
-                  <Text fontSize="sm" color={colorMode === 'light' ? 'gray.500' : 'gray.400'}>
-                    {bioLength}/{maxBioLength} characters
-                  </Text>
-                  <Text fontSize="sm" color={colorMode === 'light' ? 'gray.500' : 'gray.400'}>
-                    {bioLength < 50 ? `${50 - bioLength} more characters needed` : '✓ Good length'}
-                  </Text>
-                </HStack>
-                <FormErrorMessage>{errors.bio}</FormErrorMessage>
-          </FormControl>
-            </VStack>
-          </MotionBox>
+                <Button onClick={() => addItem('interests', newInterest, setNewInterest)}>
+                  Add
+                </Button>
+              </HStack>
+              <Wrap mt={2} spacing={2}>
+                {profile.interests.map((interest, index) => (
+                  <WrapItem key={index}>
+                    <Tag size="md" borderRadius="full" variant="solid" colorScheme="blue">
+                      <TagLabel>{interest}</TagLabel>
+                      <TagCloseButton onClick={() => removeItem('interests', index)} />
+                    </Tag>
+                  </WrapItem>
+                ))}
+              </Wrap>
+              <FormErrorMessage>{errors.interests}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.hobbies}>
+              <FormLabel>Hobbies</FormLabel>
+              <HStack>
+                <Input
+                  value={newHobby}
+                  onChange={(e) => setNewHobby(e.target.value)}
+                  placeholder="Add a hobby"
+                />
+                <Button onClick={() => addItem('hobbies', newHobby, setNewHobby)}>
+                  Add
+                </Button>
+              </HStack>
+              <Wrap mt={2} spacing={2}>
+                {profile.hobbies.map((hobby, index) => (
+                  <WrapItem key={index}>
+                    <Tag size="md" borderRadius="full" variant="solid" colorScheme="green">
+                      <TagLabel>{hobby}</TagLabel>
+                      <TagCloseButton onClick={() => removeItem('hobbies', index)} />
+                    </Tag>
+                  </WrapItem>
+                ))}
+              </Wrap>
+              <FormErrorMessage>{errors.hobbies}</FormErrorMessage>
+            </FormControl>
+          </VStack>
         );
       case 4:
         return (
-          <MotionBox
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <VStack spacing={6} align="stretch">
-              <Heading size="lg" color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>
-                Personality Profile
-              </Heading>
-              <Text color={colorMode === 'light' ? 'gray.600' : 'gray.400'}>
-                Rate yourself on these personality traits to help us find better matches.
-              </Text>
-              {Object.entries(profile.personality).map(([key, value]) => (
-                <FormControl key={key} isInvalid={errors[`personality.${key}`]}>
-                  <FormLabel>
-                    <HStack spacing={2}>
-                      <Text>
-                        {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                      </Text>
-                      <Tooltip label={`How ${key.toLowerCase()} are you?`}>
-                        <Icon as={FaBrain} color={colorMode === 'light' ? 'gray.400' : 'gray.500'} />
-                      </Tooltip>
-                    </HStack>
-                  </FormLabel>
-                  <Slider
-                    value={value === 'Low' ? 0 : value === 'Medium' ? 50 : 100}
-                    onChange={(val) => {
-                      const level = val === 0 ? 'Low' : val === 50 ? 'Medium' : 'High';
-                      setProfile({
-                        ...profile,
-                        personality: { ...profile.personality, [key]: level },
-                      });
-                    }}
-                    min={0}
-                    max={100}
-                    step={50}
-                  >
-                    <SliderTrack>
-                      <SliderFilledTrack />
-                    </SliderTrack>
-                    <SliderThumb />
-                    <SliderMark value={0} mt={2} ml={-2.5}>
-                      Low
-                    </SliderMark>
-                    <SliderMark value={50} mt={2} ml={-2.5}>
-                      Medium
-                    </SliderMark>
-                    <SliderMark value={100} mt={2} ml={-2.5}>
-                      High
-                    </SliderMark>
-                  </Slider>
-                  <FormErrorMessage>{errors[`personality.${key}`]}</FormErrorMessage>
-                </FormControl>
-              ))}
-            </VStack>
-          </MotionBox>
+          <VStack spacing={4} align="stretch">
+            <FormControl isInvalid={errors.languages}>
+              <FormLabel>Languages</FormLabel>
+              <HStack>
+                <Input
+                  value={newLanguage}
+                  onChange={(e) => setNewLanguage(e.target.value)}
+                  placeholder="Add a language"
+                />
+                <Button onClick={() => addItem('languages', newLanguage, setNewLanguage)}>
+                  Add
+                </Button>
+              </HStack>
+              <Wrap mt={2} spacing={2}>
+                {profile.languages.map((language, index) => (
+                  <WrapItem key={index}>
+                    <Tag size="md" borderRadius="full" variant="solid" colorScheme="purple">
+                      <TagLabel>{language}</TagLabel>
+                      <TagCloseButton onClick={() => removeItem('languages', index)} />
+                    </Tag>
+                  </WrapItem>
+                ))}
+              </Wrap>
+              <FormErrorMessage>{errors.languages}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.firstDateIdeas}>
+              <FormLabel>First Date Ideas</FormLabel>
+              <HStack>
+                <Input
+                  value={newDateIdea}
+                  onChange={(e) => setNewDateIdea(e.target.value)}
+                  placeholder="Add a date idea"
+                />
+                <Button onClick={() => addItem('firstDateIdeas', newDateIdea, setNewDateIdea)}>
+                  Add
+                </Button>
+              </HStack>
+              <Wrap mt={2} spacing={2}>
+                {profile.firstDateIdeas.map((idea, index) => (
+                  <WrapItem key={index}>
+                    <Tag size="md" borderRadius="full" variant="solid" colorScheme="pink">
+                      <TagLabel>{idea}</TagLabel>
+                      <TagCloseButton onClick={() => removeItem('firstDateIdeas', index)} />
+                    </Tag>
+                  </WrapItem>
+                ))}
+              </Wrap>
+              <FormErrorMessage>{errors.firstDateIdeas}</FormErrorMessage>
+            </FormControl>
+          </VStack>
         );
       case 5:
         return (
-          <MotionBox
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <VStack spacing={6} align="stretch">
-              <Heading size="lg" color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>
-                Review Your Profile
-              </Heading>
-              <Text color={colorMode === 'light' ? 'gray.600' : 'gray.400'}>
-                Take a final look at your profile before we start finding your matches.
-              </Text>
-              <Box
-                bg={colorMode === 'light' ? 'gray.50' : 'gray.700'}
-                p={6}
-                borderRadius="xl"
-                boxShadow="md"
-              >
-                <VStack spacing={4} align="stretch">
-                  <HStack spacing={4}>
-                    <Avatar
-                      size="xl"
-                      name={profile.name}
-                      src={profile.photoUrl}
-                      icon={<FaUser />}
-                      borderWidth="2px"
-                      borderColor={colorMode === 'light' ? 'pink.200' : 'pink.700'}
-                    />
-                    <VStack align="start" spacing={1}>
-                      <Heading size="md">{profile.name}, {profile.age}</Heading>
-                      <HStack spacing={2}>
-                        <Icon as={FaMapMarkerAlt} color={colorMode === 'light' ? 'gray.500' : 'gray.400'} />
-                        <Text>{profile.location}</Text>
-                      </HStack>
-                    </VStack>
-                  </HStack>
-                  <Divider />
-                  <HStack spacing={4}>
-                    <Badge colorScheme="purple" variant="subtle" px={3} py={1}>
-                      {profile.gender}
-                    </Badge>
-                    <Badge colorScheme="green" variant="subtle" px={3} py={1}>
-                      {profile.lookingFor}
-                    </Badge>
-                  </HStack>
-                  <Text>{profile.bio}</Text>
-                  <Divider />
-                  <VStack align="stretch" spacing={2}>
-                    {Object.entries(profile.personality).map(([key, value]) => (
-                      <HStack key={key} justify="space-between">
-                        <Text>
-                          {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                        </Text>
-                        <Badge colorScheme="blue" variant="subtle" px={3} py={1}>
-                          {value}
-                        </Badge>
-                      </HStack>
-                    ))}
-                  </VStack>
-                </VStack>
-              </Box>
-            </VStack>
-          </MotionBox>
+          <VStack spacing={4} align="stretch">
+            <Text fontSize="lg" fontWeight="bold">Personality Profile</Text>
+            <Text fontSize="sm" color="gray.500">
+              Rate yourself on these personality traits (1-10)
+            </Text>
+            {Object.entries(profile.personality).map(([trait, value]) => (
+              <FormControl key={trait} isInvalid={errors.personality}>
+                <FormLabel>{trait.charAt(0).toUpperCase() + trait.slice(1)}</FormLabel>
+                <Slider
+                  value={value || 5}
+                  onChange={(val) => setProfile(prev => ({
+                    ...prev,
+                    personality: { ...prev.personality, [trait]: val }
+                  }))}
+                  min={1}
+                  max={10}
+                  step={1}
+                >
+                  <SliderTrack>
+                    <SliderFilledTrack />
+                  </SliderTrack>
+                  <SliderThumb />
+                  <SliderMark value={value || 5} mt={1} ml={-2.5}>
+                    {value || 5}
+                  </SliderMark>
+                </Slider>
+              </FormControl>
+            ))}
+          </VStack>
         );
       default:
         return null;
@@ -479,73 +483,48 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl" motionPreset="slideInBottom">
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>
-          <VStack spacing={2} align="stretch">
-            <Progress value={(currentStep / totalSteps) * 100} size="sm" colorScheme="pink" />
-            <HStack justify="space-between">
-              <Text fontSize="sm" color={colorMode === 'light' ? 'gray.500' : 'gray.400'}>
-                Step {currentStep} of {totalSteps}
-              </Text>
-              <Text fontSize="sm" color={colorMode === 'light' ? 'gray.500' : 'gray.400'}>
-                {Math.round((currentStep / totalSteps) * 100)}% Complete
-              </Text>
-            </HStack>
-          </VStack>
+          <HStack justify="space-between">
+            <Text>Edit Profile</Text>
+            <Text fontSize="sm" color="gray.500">
+              Step {currentStep} of {totalSteps}
+            </Text>
+          </HStack>
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
-          <Collapse in={showError} animateOpacity>
-            <Alert status="error" mb={4} borderRadius="md">
-              <AlertIcon />
-              <Box flex="1">
-                <AlertTitle>Please fix the following errors:</AlertTitle>
-                <AlertDescription>
-                  {Object.values(errors).map((error, index) => (
-                    <Text key={index}>{error}</Text>
-                  ))}
-                </AlertDescription>
-              </Box>
-              <CloseButton position="absolute" right="8px" top="8px" onClick={() => setShowError(false)} />
-            </Alert>
-          </Collapse>
+          <Progress value={(currentStep / totalSteps) * 100} mb={4} />
           {renderStep()}
-        </ModalBody>
-        <Box p={6} borderTopWidth="1px" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.700'}>
-          <HStack spacing={4} justify="space-between">
+          <HStack justify="space-between" mt={6}>
             <Button
+              leftIcon={<FaArrowLeft />}
               onClick={handleBack}
               isDisabled={currentStep === 1}
-              variant="outline"
-              size="lg"
-              leftIcon={<FaArrowLeft />}
             >
               Back
             </Button>
             {currentStep === totalSteps ? (
               <Button
+                rightIcon={<FaCheck />}
+                colorScheme="blue"
                 onClick={handleSubmit}
-                colorScheme="pink"
-                size="lg"
-                leftIcon={isSubmitting ? <Spinner size="sm" /> : <FaCheck />}
                 isLoading={isSubmitting}
               >
-                Complete Profile
+                Save Profile
               </Button>
             ) : (
               <Button
-                onClick={handleNext}
-                colorScheme="pink"
-                size="lg"
                 rightIcon={<FaArrowRight />}
+                onClick={handleNext}
               >
                 Next
-          </Button>
+              </Button>
             )}
           </HStack>
-    </Box>
+        </ModalBody>
       </ModalContent>
     </Modal>
   );

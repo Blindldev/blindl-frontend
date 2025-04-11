@@ -7,10 +7,11 @@ import WaitingScreen from './components/WaitingScreen';
 import { ProfileProvider, useProfile } from './context/ProfileContext';
 import SignUp from './components/SignUp';
 import PersonalityQuestions from './components/PersonalityQuestions';
+import theme from './theme';
 
 function App() {
   return (
-    <ChakraProvider>
+    <ChakraProvider theme={theme}>
       <CSSReset />
       <ProfileProvider>
         <Router>
