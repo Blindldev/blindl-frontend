@@ -30,7 +30,7 @@ import { useProfile } from '../context/ProfileContext';
 
 const WaitingScreen = () => {
   const { colorMode } = useColorMode();
-  const { profile, updateProfile } = useProfile();
+  const { profile, setProfile, updateProfile } = useProfile();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -39,6 +39,16 @@ const WaitingScreen = () => {
       setIsLoading(false);
     }
   }, [profile]);
+
+  const handleProfileUpdate = async (updatedProfile) => {
+    try {
+      const newProfile = await updateProfile(updatedProfile);
+      setProfile(newProfile);
+      setIsProfileModalOpen(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -221,7 +231,7 @@ const WaitingScreen = () => {
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
           initialData={profile}
-          onProfileUpdate={updateProfile}
+          onProfileUpdate={handleProfileUpdate}
         />
       </VStack>
     </Container>
