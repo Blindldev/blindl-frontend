@@ -42,18 +42,26 @@ const WaitingScreen = () => {
   const padding = useBreakpointValue({ base: 4, md: 8 });
 
   useEffect(() => {
-    if (!profile) {
-      console.log('No profile found, redirecting to sign in');
-      navigate('/');
-      return;
-    }
+    // Only redirect if we're sure there's no profile after loading
+    const checkProfile = async () => {
+      try {
+        // Wait a moment for the profile to be set in context
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        if (!profile) {
+          console.log('No profile found after loading, redirecting to sign in');
+          navigate('/');
+        } else {
+          console.log('Profile found:', profile);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error checking profile:', error);
+        navigate('/');
+      }
+    };
 
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-
-    return () => clearTimeout(timer);
+    checkProfile();
   }, [profile, navigate]);
 
   const handleProfileUpdate = async (updatedProfile) => {
@@ -113,78 +121,108 @@ const WaitingScreen = () => {
           <Text fontSize="2xl" fontWeight="bold">
             Your Profile
           </Text>
-          <Button
-            colorScheme="red"
-            variant="outline"
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
+          <HStack>
+            <IconButton
+              aria-label="Edit profile"
+              icon={<FaEdit />}
+              onClick={() => setIsProfileModalOpen(true)}
+              colorScheme="blue"
+            />
+            <Button
+              colorScheme="red"
+              variant="outline"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          </HStack>
         </HStack>
         
         <Box w="100%" bg="white" p={6} borderRadius="lg" boxShadow="md">
           <VStack spacing={6} align="start">
-            <Box>
-              <Text fontSize="xl" fontWeight="bold">{profile.name}</Text>
-              <Text color="gray.600">{profile.age} years old</Text>
-              <Text color="gray.600">{profile.location}</Text>
-            </Box>
-
-            <Box>
-              <Text fontWeight="bold" mb={2}>About Me</Text>
+            <HStack spacing={4} align="start">
+              <Avatar
+                size="xl"
+                src={profile.picture}
+                name={profile.name}
+              />
+              <Box>
+                <Text fontSize="xl" fontWeight="bold">{profile.name}</Text>
+                <Text color="gray.600">{profile.age} years old</Text>
+                <HStack>
+                  <Icon as={FaMapMarkerAlt} color="gray.500" />
+                  <Text color="gray.600">{profile.location}</Text>
+                </HStack>
+                {profile.occupation && (
+                  <HStack>
+                    <Icon as={FaBriefcase} color="gray.500" />
+                    <Text color="gray.600">{profile.occupation}</Text>
+                  </HStack>
+                )}
+                {profile.education && (
+                  <HStack>
+                    <Icon as={FaGraduationCap} color="gray.500" />
+                    <Text color="gray.600">{profile.education}</Text>
+                  </HStack>
+                )}
+              </Box>
+            </HStack>
+              
+              <Box>
+                <Text fontWeight="bold" mb={2}>About Me</Text>
               <Text>{profile.bio}</Text>
-            </Box>
+              </Box>
 
             <Box>
               <Text fontWeight="bold" mb={2}>Interests</Text>
               <Wrap>
                 {profile.interests.map((interest, index) => (
-                  <WrapItem key={index}>
+                      <WrapItem key={index}>
                     <Badge colorScheme="blue" p={2} m={1}>
-                      {interest}
-                    </Badge>
-                  </WrapItem>
-                ))}
-              </Wrap>
+                          {interest}
+                        </Badge>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
             </Box>
 
             <Box>
               <Text fontWeight="bold" mb={2}>Hobbies</Text>
               <Wrap>
                 {profile.hobbies.map((hobby, index) => (
-                  <WrapItem key={index}>
+                      <WrapItem key={index}>
                     <Badge colorScheme="green" p={2} m={1}>
-                      {hobby}
-                    </Badge>
-                  </WrapItem>
-                ))}
-              </Wrap>
+                          {hobby}
+                        </Badge>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
             </Box>
 
             <Box>
               <Text fontWeight="bold" mb={2}>Languages</Text>
               <Wrap>
                 {profile.languages.map((language, index) => (
-                  <WrapItem key={index}>
+                      <WrapItem key={index}>
                     <Badge colorScheme="purple" p={2} m={1}>
                       {language}
-                    </Badge>
-                  </WrapItem>
-                ))}
-              </Wrap>
+                        </Badge>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
             </Box>
 
             <Box>
               <Text fontWeight="bold" mb={2}>First Date Ideas</Text>
               <Wrap>
                 {profile.firstDateIdeas.map((idea, index) => (
-                  <WrapItem key={index}>
+                      <WrapItem key={index}>
                     <Badge colorScheme="orange" p={2} m={1}>
                       {idea}
-                    </Badge>
-                  </WrapItem>
-                ))}
-              </Wrap>
+                        </Badge>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
             </Box>
 
             <Box>
@@ -194,10 +232,10 @@ const WaitingScreen = () => {
                 <Text>Relationship goals: {profile.relationshipGoals}</Text>
                 <Text>Smoking: {profile.smoking}</Text>
                 <Text>Drinking: {profile.drinking}</Text>
-              </VStack>
+                </VStack>
             </Box>
-          </VStack>
-        </Box>
+            </VStack>
+          </Box>
 
         {/* Profile Form Modal */}
         <ProfileForm
@@ -206,7 +244,7 @@ const WaitingScreen = () => {
           initialData={profile}
           onProfileUpdate={handleProfileUpdate}
         />
-      </VStack>
+        </VStack>
     </Box>
   );
 };

@@ -141,8 +141,19 @@ const CreateProfile = () => {
       const data = await response.json();
       console.log('Profile creation response:', data);
       
-      setProfile(data.profile);
-
+      // Update profile in context with the complete profile data
+      const updatedProfile = {
+        ...data,
+        status: 'pending',
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Set the profile in context
+      setProfile(updatedProfile);
+      
+      // Wait a moment to ensure the profile is set
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       toast({
         title: 'Profile created successfully',
         status: 'success',
@@ -150,6 +161,7 @@ const CreateProfile = () => {
         isClosable: true,
       });
 
+      // Navigate to waiting page
       navigate('/waiting');
     } catch (error) {
       console.error('Profile creation error:', error);
