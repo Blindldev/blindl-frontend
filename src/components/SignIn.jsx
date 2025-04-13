@@ -17,6 +17,7 @@ import {
   Badge,
   Wrap,
   WrapItem,
+  Image,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
@@ -77,10 +78,10 @@ const SignIn = () => {
   const [tempHobby, setTempHobby] = useState('');
   const [tempLanguage, setTempLanguage] = useState('');
   const [tempDateIdea, setTempDateIdea] = useState('');
+  const [profilePicture, setProfilePicture] = useState(null);
   const navigate = useNavigate();
   const toast = useToast();
   const { setProfile } = useProfile();
-  const [googleScriptLoaded, setGoogleScriptLoaded] = useState(false);
 
   // Responsive styles
   const containerWidth = useBreakpointValue({ base: '100%', md: 'md' });
@@ -91,26 +92,63 @@ const SignIn = () => {
   useEffect(() => {
     const initializeGoogleSignIn = () => {
       if (window.google) {
-        window.google.accounts.id.initialize({
-          client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-          callback: handleGoogleSignIn,
-        });
-        window.google.accounts.id.renderButton(
-          document.getElementById('googleSignInButton'),
-          { theme: 'outline', size: 'large' }
-        );
-        setGoogleScriptLoaded(true);
+        try {
+          // Use the same client ID that's hardcoded in the backend
+          const clientId = '910532636592-98noic506pegni3jm6omq7p610u8gdrh.apps.googleusercontent.com';
+          console.log('[Google Init] Starting initialization with client ID:', clientId);
+
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: (response) => {
+              console.log('[Google Callback] Raw response object:', response);
+              console.log('[Google Callback] Response keys:', Object.keys(response));
+              console.log('[Google Callback] Response stringified:', JSON.stringify(response));
+              // Ensure we're passing the response directly
+              handleGoogleSignIn({...response});
+            },
+            auto_select: false,
+            cancel_on_tap_outside: true,
+            ux_mode: 'popup'
+          });
+
+          console.log('[Google Init] Initialization complete, rendering button');
+          window.google.accounts.id.renderButton(
+            document.getElementById('googleSignInButton'),
+            { 
+              theme: 'outline', 
+              size: 'large',
+              type: 'standard',
+              shape: 'rectangular',
+              text: 'continue_with',
+              logo_alignment: 'left'
+            }
+          );
+          console.log('[Google Init] Button rendered');
+        } catch (error) {
+          console.error('[Google Init Error]', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to initialize Google Sign-In. Please try again later.',
+            status: 'error',
+            duration: 5000,
+            isClosable: true,
+          });
+        }
       }
     };
 
     const loadGoogleScript = () => {
+      console.log('[Google Script] Loading Google Sign-In script');
       const script = document.createElement('script');
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
       script.defer = true;
-      script.onload = initializeGoogleSignIn;
-      script.onerror = () => {
-        console.error('Failed to load Google Sign-In script');
+      script.onload = () => {
+        console.log('[Google Script] Script loaded successfully');
+        initializeGoogleSignIn();
+      };
+      script.onerror = (error) => {
+        console.error('[Google Script Error] Failed to load script:', error);
         toast({
           title: 'Error',
           description: 'Failed to load Google Sign-In. Please try again later.',
@@ -125,6 +163,7 @@ const SignIn = () => {
     if (!window.google) {
       loadGoogleScript();
     } else {
+      console.log('[Google Init] Google object already exists, initializing directly');
       initializeGoogleSignIn();
     }
   }, [toast]);
@@ -132,33 +171,63 @@ const SignIn = () => {
   const handleGoogleSignIn = async (response) => {
     try {
       setIsLoading(true);
-      console.log('Google Sign-In response:', response);
+      console.log('[Google Handler] Starting sign-in process');
+      console.log('[Google Handler] Full response:', response);
+      console.log('[Google Handler] Response type:', typeof response);
 
+      // Check if we have a valid response with a credential
+      if (!response) {
+        console.error('[Google Handler] Response is null or undefined');
+        throw new Error('No response from Google');
+      }
+
+      if (!response.credential) {
+        console.error('[Google Handler] No credential in response. Response keys:', Object.keys(response));
+        throw new Error('No token provided');
+      }
+
+      console.log('[Google Handler] Credential found, length:', response.credential.length);
+      console.log('[Google Handler] Making API request to backend');
+
+      // Send the credential to our backend
       const result = await fetch('http://localhost:3002/api/auth/google', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ credential: response.credential }),
+        body: JSON.stringify({ 
+          credential: response.credential // Changed to match backend expectation
+        }),
         credentials: 'include'
       });
 
+      console.log('[Google Handler] API response status:', result.status);
+
       if (!result.ok) {
         const errorData = await result.json();
+        console.error('[Google Handler] API error response:', errorData);
         throw new Error(errorData.error || 'Failed to sign in with Google');
       }
 
       const data = await result.json();
-      console.log('Google auth response:', data);
+      console.log('[Google Handler] API success response:', data);
 
       if (data.isNewUser) {
+        console.log('[Google Handler] New user detected, setting up profile');
+        setEmail(data.profile.email);
+        if (data.profile.picture) {
+          console.log('[Google Handler] Setting profile picture from Google');
+          setProfilePicture(data.profile.picture);
+        }
         setStep('profile');
       } else {
+        console.log('[Google Handler] Existing user, navigating to waiting page');
         setProfile(data.profile);
         navigate('/waiting');
       }
     } catch (error) {
-      console.error('Google Sign-In error:', error);
+      console.error('[Google Handler] Error:', error);
+      console.error('[Google Handler] Error stack:', error.stack);
       toast({
         title: 'Error',
         description: error.message,
@@ -358,28 +427,8 @@ const SignIn = () => {
         isClosable: true,
       });
 
-      // Now sign in with the newly created profile
-      const signInResponse = await fetch('http://localhost:3002/api/auth/signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email, 
-          password,
-          isNewUser: false
-        }),
-      });
-
-      if (!signInResponse.ok) {
-        throw new Error('Failed to sign in after profile creation');
-      }
-
-      const signInData = await signInResponse.json();
-      console.log('Sign in after profile creation:', signInData);
-      
-      // Set the profile again with the complete data
-      setProfile(signInData.profile);
-      
-      // Navigate to waiting screen
+      // For Google-authenticated users, we don't need to sign in again
+      // Just navigate to the waiting page
       navigate('/waiting');
     } catch (error) {
       console.error('Profile creation error:', error);
@@ -548,6 +597,47 @@ const SignIn = () => {
                 >
                   Fill Random Data (Dev)
                 </Button>
+
+                {/* Profile Picture Upload */}
+                <FormControl>
+                  <FormLabel>Profile Picture</FormLabel>
+                  <VStack spacing={4}>
+                    {profilePicture && (
+                      <Image
+                        src={profilePicture}
+                        alt="Profile"
+                        boxSize="150px"
+                        objectFit="cover"
+                        borderRadius="full"
+                      />
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setProfilePicture(reader.result);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      display="none"
+                      id="profile-picture-upload"
+                    />
+                    <Button
+                      onClick={() => document.getElementById('profile-picture-upload').click()}
+                      colorScheme="blue"
+                      variant="outline"
+                      width="100%"
+                    >
+                      {profilePicture ? 'Change Picture' : 'Upload Picture'}
+                    </Button>
+                  </VStack>
+                </FormControl>
+
                 <FormControl isInvalid={errors.name}>
                   <FormLabel>Name</FormLabel>
                   <Input
