@@ -348,9 +348,8 @@ const SignIn = () => {
       const data = await response.json();
       console.log('Profile creation response:', data);
       
-      // Set the profile in context and wait for it to be set
-      await setProfile(data.profile);
-      console.log('Profile set in context:', data.profile);
+      // Set the profile in context before navigating
+      setProfile(data.profile);
 
       toast({
         title: 'Profile created successfully',
@@ -359,6 +358,27 @@ const SignIn = () => {
         isClosable: true,
       });
 
+      // Now sign in with the newly created profile
+      const signInResponse = await fetch('http://localhost:3002/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email, 
+          password,
+          isNewUser: false
+        }),
+      });
+
+      if (!signInResponse.ok) {
+        throw new Error('Failed to sign in after profile creation');
+      }
+
+      const signInData = await signInResponse.json();
+      console.log('Sign in after profile creation:', signInData);
+      
+      // Set the profile again with the complete data
+      setProfile(signInData.profile);
+      
       // Navigate to waiting screen
       navigate('/waiting');
     } catch (error) {

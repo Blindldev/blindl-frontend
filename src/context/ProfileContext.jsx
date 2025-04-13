@@ -27,21 +27,40 @@ export const ProfileProvider = ({ children }) => {
       }
 
       const data = await response.json();
-      setProfile(data);
+      // Ensure profile has all required fields with default values
+      const defaultProfile = {
+        name: '',
+        age: '',
+        gender: '',
+        lookingFor: '',
+        location: '',
+        occupation: '',
+        education: '',
+        bio: '',
+        interests: [],
+        hobbies: [],
+        languages: [],
+        photos: [],
+        relationshipGoals: '',
+        smoking: '',
+        drinking: '',
+        firstDateIdeas: [],
+        personality: {},
+        ...data
+      };
+      setProfile(defaultProfile);
     } catch (error) {
       console.error('Error fetching profile:', error);
       setError(error.message);
+      // Don't set profile to null on error to maintain existing profile
     } finally {
       setLoading(false);
     }
   };
 
-  // Only fetch profile if we don't have one and we're not in a loading state
   useEffect(() => {
-    if (!profile && !loading) {
-      fetchProfile();
-    }
-  }, [profile, loading]);
+    fetchProfile();
+  }, []);
 
   const updateProfile = async (updatedProfile) => {
     try {
@@ -50,27 +69,56 @@ export const ProfileProvider = ({ children }) => {
       const response = await fetch('http://localhost:3002/api/profiles', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify(updatedProfile)
+        body: JSON.stringify(updatedProfile),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server did not return JSON');
+      }
+
       const data = await response.json();
-      setProfile(data.profile);
+      // Ensure updated profile has all required fields with default values
+      const defaultProfile = {
+        name: '',
+        age: '',
+        gender: '',
+        lookingFor: '',
+        location: '',
+        occupation: '',
+        education: '',
+        bio: '',
+        interests: [],
+        hobbies: [],
+        languages: [],
+        photos: [],
+        relationshipGoals: '',
+        smoking: '',
+        drinking: '',
+        firstDateIdeas: [],
+        personality: {},
+        ...data
+      };
+      setProfile(defaultProfile);
+      return defaultProfile;
     } catch (error) {
       console.error('Error updating profile:', error);
       setError(error.message);
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ProfileContext.Provider value={{ profile, setProfile, loading, error, updateProfile }}>
+    <ProfileContext.Provider value={{ profile, setProfile, updateProfile, loading, error }}>
       {children}
     </ProfileContext.Provider>
   );
