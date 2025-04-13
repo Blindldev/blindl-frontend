@@ -48,7 +48,7 @@ const WaitingPage = () => {
               width="100%"
               size={buttonSize}
             >
-              Edit Profile Fields
+              Edit Profile Information
             </Button>
 
             <Button
