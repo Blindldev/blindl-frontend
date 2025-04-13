@@ -13,8 +13,25 @@ import {
   useToast,
   Container,
   FormErrorMessage,
+  HStack,
+  Badge,
+  Wrap,
+  WrapItem,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useProfile } from '../context/ProfileContext';
+
+const CHICAGO_NEIGHBORHOODS = [
+  'Lincoln Park', 'Wicker Park', 'Lakeview', 'Logan Square', 'River North',
+  'West Loop', 'Gold Coast', 'Old Town', 'Bucktown', 'Pilsen'
+];
+
+const DATE_SPOTS = [
+  'Art Institute of Chicago', 'Millennium Park', 'Navy Pier', 'Willis Tower Skydeck',
+  'Chicago Riverwalk', 'Garfield Park Conservatory', 'Lincoln Park Zoo', 'Shedd Aquarium',
+  'Field Museum', 'Museum of Science and Industry'
+];
 
 const CreateProfile = () => {
   const [formData, setFormData] = useState({
@@ -26,20 +43,31 @@ const CreateProfile = () => {
     occupation: '',
     education: '',
     bio: '',
-    interests: '',
-    hobbies: '',
-    languages: '',
+    interests: [],
+    hobbies: [],
+    languages: [],
     relationshipGoals: '',
     smoking: '',
     drinking: '',
-    firstDateIdeas: '',
+    firstDateIdeas: [],
+    photos: [],
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [tempInterest, setTempInterest] = useState('');
+  const [tempHobby, setTempHobby] = useState('');
+  const [tempLanguage, setTempLanguage] = useState('');
+  const [tempDateIdea, setTempDateIdea] = useState('');
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const { setProfile } = useProfile();
   const email = location.state?.email;
+
+  // Responsive styles
+  const containerWidth = useBreakpointValue({ base: '100%', md: 'md' });
+  const padding = useBreakpointValue({ base: 4, md: 10 });
+  const buttonSize = useBreakpointValue({ base: 'lg', md: 'md' });
 
   useEffect(() => {
     if (!email) {
@@ -55,6 +83,23 @@ const CreateProfile = () => {
     }));
   };
 
+  const addToList = (listName, value, setTempValue) => {
+    if (value.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        [listName]: [...prev[listName], value.trim()]
+      }));
+      setTempValue('');
+    }
+  };
+
+  const removeFromList = (listName, index) => {
+    setFormData(prev => ({
+      ...prev,
+      [listName]: prev[listName].filter((_, i) => i !== index)
+    }));
+  };
+
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name) newErrors.name = 'Name is required';
@@ -63,6 +108,13 @@ const CreateProfile = () => {
     if (!formData.lookingFor) newErrors.lookingFor = 'Looking for is required';
     if (!formData.location) newErrors.location = 'Location is required';
     if (!formData.bio) newErrors.bio = 'Bio is required';
+    if (formData.interests.length === 0) newErrors.interests = 'At least one interest is required';
+    if (formData.hobbies.length === 0) newErrors.hobbies = 'At least one hobby is required';
+    if (formData.languages.length === 0) newErrors.languages = 'At least one language is required';
+    if (formData.firstDateIdeas.length === 0) newErrors.firstDateIdeas = 'At least one first date idea is required';
+    if (!formData.relationshipGoals) newErrors.relationshipGoals = 'Relationship goals are required';
+    if (!formData.smoking) newErrors.smoking = 'Smoking preference is required';
+    if (!formData.drinking) newErrors.drinking = 'Drinking preference is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -79,16 +131,17 @@ const CreateProfile = () => {
         body: JSON.stringify({
           email,
           ...formData,
-          interests: formData.interests.split(',').map(i => i.trim()),
-          hobbies: formData.hobbies.split(',').map(h => h.trim()),
-          languages: formData.languages.split(',').map(l => l.trim()),
-          firstDateIdeas: formData.firstDateIdeas.split(',').map(d => d.trim()),
         }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to create profile');
       }
+
+      const data = await response.json();
+      console.log('Profile creation response:', data);
+      
+      setProfile(data.profile);
 
       toast({
         title: 'Profile created successfully',
@@ -99,6 +152,7 @@ const CreateProfile = () => {
 
       navigate('/waiting');
     } catch (error) {
+      console.error('Profile creation error:', error);
       toast({
         title: 'Error',
         description: error.message,
@@ -112,7 +166,7 @@ const CreateProfile = () => {
   };
 
   return (
-    <Container maxW="container.md" py={10}>
+    <Container maxW={containerWidth} py={padding} px={padding}>
       <VStack spacing={8} align="stretch">
         <Heading>Create Your Profile</Heading>
         <Text>Tell us about yourself to help us find your perfect match.</Text>
@@ -174,12 +228,16 @@ const CreateProfile = () => {
 
             <FormControl isInvalid={errors.location}>
               <FormLabel>Location</FormLabel>
-              <Input
+              <Select
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
-                placeholder="Your location"
-              />
+                placeholder="Select your neighborhood"
+              >
+                {CHICAGO_NEIGHBORHOODS.map(neighborhood => (
+                  <option key={neighborhood} value={neighborhood}>{neighborhood}</option>
+                ))}
+              </Select>
               <FormErrorMessage>{errors.location}</FormErrorMessage>
             </FormControl>
 
@@ -214,37 +272,97 @@ const CreateProfile = () => {
               <FormErrorMessage>{errors.bio}</FormErrorMessage>
             </FormControl>
 
-            <FormControl>
-              <FormLabel>Interests (comma separated)</FormLabel>
-              <Input
-                name="interests"
-                value={formData.interests}
-                onChange={handleChange}
-                placeholder="e.g. hiking, reading, cooking"
-              />
+            <FormControl isInvalid={errors.interests}>
+              <FormLabel>Interests</FormLabel>
+              <HStack>
+                <Input
+                  value={tempInterest}
+                  onChange={(e) => setTempInterest(e.target.value)}
+                  placeholder="Add an interest"
+                />
+                <Button onClick={() => addToList('interests', tempInterest, setTempInterest)}>
+                  Add
+                </Button>
+              </HStack>
+              <Wrap mt={2}>
+                {formData.interests.map((interest, index) => (
+                  <WrapItem key={index}>
+                    <Badge
+                      colorScheme="blue"
+                      p={2}
+                      m={1}
+                      cursor="pointer"
+                      onClick={() => removeFromList('interests', index)}
+                    >
+                      {interest}
+                    </Badge>
+                  </WrapItem>
+                ))}
+              </Wrap>
+              <FormErrorMessage>{errors.interests}</FormErrorMessage>
             </FormControl>
 
-            <FormControl>
-              <FormLabel>Hobbies (comma separated)</FormLabel>
-              <Input
-                name="hobbies"
-                value={formData.hobbies}
-                onChange={handleChange}
-                placeholder="e.g. photography, yoga, gaming"
-              />
+            <FormControl isInvalid={errors.hobbies}>
+              <FormLabel>Hobbies</FormLabel>
+              <HStack>
+                <Input
+                  value={tempHobby}
+                  onChange={(e) => setTempHobby(e.target.value)}
+                  placeholder="Add a hobby"
+                />
+                <Button onClick={() => addToList('hobbies', tempHobby, setTempHobby)}>
+                  Add
+                </Button>
+              </HStack>
+              <Wrap mt={2}>
+                {formData.hobbies.map((hobby, index) => (
+                  <WrapItem key={index}>
+                    <Badge
+                      colorScheme="green"
+                      p={2}
+                      m={1}
+                      cursor="pointer"
+                      onClick={() => removeFromList('hobbies', index)}
+                    >
+                      {hobby}
+                    </Badge>
+                  </WrapItem>
+                ))}
+              </Wrap>
+              <FormErrorMessage>{errors.hobbies}</FormErrorMessage>
             </FormControl>
 
-            <FormControl>
-              <FormLabel>Languages (comma separated)</FormLabel>
-              <Input
-                name="languages"
-                value={formData.languages}
-                onChange={handleChange}
-                placeholder="e.g. English, Spanish, French"
-              />
+            <FormControl isInvalid={errors.languages}>
+              <FormLabel>Languages</FormLabel>
+              <HStack>
+                <Input
+                  value={tempLanguage}
+                  onChange={(e) => setTempLanguage(e.target.value)}
+                  placeholder="Add a language"
+                />
+                <Button onClick={() => addToList('languages', tempLanguage, setTempLanguage)}>
+                  Add
+                </Button>
+              </HStack>
+              <Wrap mt={2}>
+                {formData.languages.map((language, index) => (
+                  <WrapItem key={index}>
+                    <Badge
+                      colorScheme="purple"
+                      p={2}
+                      m={1}
+                      cursor="pointer"
+                      onClick={() => removeFromList('languages', index)}
+                    >
+                      {language}
+                    </Badge>
+                  </WrapItem>
+                ))}
+              </Wrap>
+              <FormErrorMessage>{errors.languages}</FormErrorMessage>
             </FormControl>
 
-            <FormControl>
+            <FormControl isInvalid={errors.relationshipGoals}>
               <FormLabel>Relationship Goals</FormLabel>
               <Select
                 name="relationshipGoals"
@@ -255,10 +373,12 @@ const CreateProfile = () => {
                 <option value="long-term">Long-term relationship</option>
                 <option value="marriage">Marriage</option>
                 <option value="casual">Casual dating</option>
+                <option value="friendship">Friendship first</option>
               </Select>
+              <FormErrorMessage>{errors.relationshipGoals}</FormErrorMessage>
             </FormControl>
 
-            <FormControl>
+            <FormControl isInvalid={errors.smoking}>
               <FormLabel>Smoking</FormLabel>
               <Select
                 name="smoking"
@@ -270,9 +390,10 @@ const CreateProfile = () => {
                 <option value="socially">Socially</option>
                 <option value="regularly">Regularly</option>
               </Select>
+              <FormErrorMessage>{errors.smoking}</FormErrorMessage>
             </FormControl>
 
-            <FormControl>
+            <FormControl isInvalid={errors.drinking}>
               <FormLabel>Drinking</FormLabel>
               <Select
                 name="drinking"
@@ -284,23 +405,44 @@ const CreateProfile = () => {
                 <option value="socially">Socially</option>
                 <option value="regularly">Regularly</option>
               </Select>
+              <FormErrorMessage>{errors.drinking}</FormErrorMessage>
             </FormControl>
 
-            <FormControl>
-              <FormLabel>First Date Ideas (comma separated)</FormLabel>
-              <Input
-                name="firstDateIdeas"
-                value={formData.firstDateIdeas}
-                onChange={handleChange}
-                placeholder="e.g. coffee, museum, hiking"
-              />
+            <FormControl isInvalid={errors.firstDateIdeas}>
+              <FormLabel>First Date Ideas</FormLabel>
+              <HStack>
+                <Input
+                  value={tempDateIdea}
+                  onChange={(e) => setTempDateIdea(e.target.value)}
+                  placeholder="Add a first date idea"
+                />
+                <Button onClick={() => addToList('firstDateIdeas', tempDateIdea, setTempDateIdea)}>
+                  Add
+                </Button>
+              </HStack>
+              <Wrap mt={2}>
+                {formData.firstDateIdeas.map((idea, index) => (
+                  <WrapItem key={index}>
+                    <Badge
+                      colorScheme="orange"
+                      p={2}
+                      m={1}
+                      cursor="pointer"
+                      onClick={() => removeFromList('firstDateIdeas', index)}
+                    >
+                      {idea}
+                    </Badge>
+                  </WrapItem>
+                ))}
+              </Wrap>
+              <FormErrorMessage>{errors.firstDateIdeas}</FormErrorMessage>
             </FormControl>
 
             <Button
               type="submit"
               colorScheme="blue"
-              size="lg"
-              width="full"
+              width="100%"
+              size={buttonSize}
               isLoading={isLoading}
             >
               Create Profile

@@ -77,20 +77,20 @@ const WaitingScreen = () => {
         {/* Profile Header */}
         <Box
           bg={colorMode === 'light' ? 'white' : 'gray.700'}
-          p={6}
+            p={6}
           borderRadius="xl"
           boxShadow="md"
         >
           <HStack spacing={4} justify="space-between">
             <HStack spacing={4}>
-              <Avatar
-                size="xl"
-                name={profile.name}
+                <Avatar
+                  size="xl"
+                  name={profile.name}
                 src={profile.photos?.[0]}
                 borderWidth="2px"
                 borderColor={colorMode === 'light' ? 'pink.200' : 'pink.700'}
-              />
-              <VStack align="start" spacing={1}>
+                />
+                <VStack align="start" spacing={1}>
                 <Heading size="lg">{profile.name}, {profile.age}</Heading>
                 <HStack spacing={2}>
                   <Icon as={FaMapMarkerAlt} color={colorMode === 'light' ? 'gray.500' : 'gray.400'} />
@@ -128,7 +128,7 @@ const WaitingScreen = () => {
             <VStack align="start" spacing={2}>
               <Heading size="md">About Me</Heading>
               <Text>{profile.bio}</Text>
-            </VStack>
+                </VStack>
 
             <Divider />
 
@@ -154,54 +154,54 @@ const WaitingScreen = () => {
                 </Badge>
               </HStack>
             </VStack>
-
+              
             <Divider />
 
             {/* Interests & Hobbies */}
-            <VStack align="start" spacing={2}>
+                <VStack align="start" spacing={2}>
               <Heading size="md">Interests & Hobbies</Heading>
-              <Wrap spacing={2}>
+                  <Wrap spacing={2}>
                 {profile.interests.map((interest, index) => (
-                  <WrapItem key={index}>
+                      <WrapItem key={index}>
                     <Tag size="md" colorScheme="blue">
                       <TagLabel>{interest}</TagLabel>
                     </Tag>
-                  </WrapItem>
-                ))}
+                      </WrapItem>
+                    ))}
                 {profile.hobbies.map((hobby, index) => (
-                  <WrapItem key={index}>
+                      <WrapItem key={index}>
                     <Tag size="md" colorScheme="green">
                       <TagLabel>{hobby}</TagLabel>
                     </Tag>
-                  </WrapItem>
-                ))}
-              </Wrap>
-            </VStack>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
+                </VStack>
 
             <Divider />
 
             {/* Languages & Date Ideas */}
-            <VStack align="start" spacing={2}>
+                <VStack align="start" spacing={2}>
               <Heading size="md">Languages & Date Ideas</Heading>
-              <Wrap spacing={2}>
+                  <Wrap spacing={2}>
                 {profile.languages.map((language, index) => (
-                  <WrapItem key={index}>
+                      <WrapItem key={index}>
                     <Tag size="md" colorScheme="purple">
                       <TagLabel>{language}</TagLabel>
                     </Tag>
-                  </WrapItem>
-                ))}
-              </Wrap>
-              <Wrap spacing={2}>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
+                  <Wrap spacing={2}>
                 {profile.firstDateIdeas.map((idea, index) => (
-                  <WrapItem key={index}>
+                      <WrapItem key={index}>
                     <Tag size="md" colorScheme="pink">
                       <TagLabel>{idea}</TagLabel>
                     </Tag>
-                  </WrapItem>
-                ))}
-              </Wrap>
-            </VStack>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
+                </VStack>
 
             <Divider />
 
@@ -226,8 +226,8 @@ const WaitingScreen = () => {
                 <Text color="gray.500">Personality profile not available</Text>
               )}
             </VStack>
-          </VStack>
-        </Box>
+            </VStack>
+          </Box>
 
         {/* Profile Form Modal */}
         <ProfileForm
@@ -236,8 +236,8 @@ const WaitingScreen = () => {
           initialData={profile}
           onProfileUpdate={handleProfileUpdate}
         />
-      </VStack>
-    </Container>
+        </VStack>
+      </Container>
   );
 };
 
