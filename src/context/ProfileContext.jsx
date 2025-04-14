@@ -14,8 +14,10 @@ export const ProfileProvider = ({ children }) => {
   // Save profile to localStorage whenever it changes
   useEffect(() => {
     if (profile) {
+      console.log('Saving profile to localStorage:', profile);
       localStorage.setItem('profile', JSON.stringify(profile));
     } else {
+      console.log('Removing profile from localStorage');
       localStorage.removeItem('profile');
     }
   }, [profile]);
@@ -24,6 +26,7 @@ export const ProfileProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
+      console.log('Fetching profile from backend...');
       const response = await fetch('http://localhost:3002/api/profiles/current', {
         headers: {
           'Accept': 'application/json'
@@ -40,6 +43,8 @@ export const ProfileProvider = ({ children }) => {
       }
 
       const data = await response.json();
+      console.log('Received profile data:', data);
+      
       // Ensure profile has all required fields with default values
       const defaultProfile = {
         name: '',
@@ -61,6 +66,8 @@ export const ProfileProvider = ({ children }) => {
         personality: {},
         ...data
       };
+      
+      console.log('Setting profile with default values:', defaultProfile);
       setProfile(defaultProfile);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -73,8 +80,10 @@ export const ProfileProvider = ({ children }) => {
 
   useEffect(() => {
     if (!profile) {
+      console.log('No profile found, fetching from backend');
       fetchProfile();
     } else {
+      console.log('Using existing profile:', profile);
       setLoading(false);
     }
   }, []);
@@ -119,29 +128,24 @@ export const ProfileProvider = ({ children }) => {
 
       const data = await response.json();
       console.log('Update successful, received data:', data);
-      // Ensure updated profile has all required fields with default values
-      const defaultProfile = {
-        name: '',
-        age: '',
-        gender: '',
-        lookingFor: '',
-        location: '',
-        occupation: '',
-        education: '',
-        bio: '',
-        interests: [],
-        hobbies: [],
-        languages: [],
-        photos: [],
-        relationshipGoals: '',
-        smoking: '',
-        drinking: '',
-        firstDateIdeas: [],
-        personality: {},
-        ...data
-      };
-      setProfile(defaultProfile);
-      return defaultProfile;
+      
+      if (data.success && data.user) {
+        // Create a complete profile object with all fields
+        const completeProfile = {
+          ...profile, // Keep existing profile data
+          ...data.user, // Update with new data
+          interests: Array.isArray(data.user.interests) ? data.user.interests : [],
+          hobbies: Array.isArray(data.user.hobbies) ? data.user.hobbies : [],
+          languages: Array.isArray(data.user.languages) ? data.user.languages : [],
+          firstDateIdeas: Array.isArray(data.user.firstDateIdeas) ? data.user.firstDateIdeas : []
+        };
+        
+        console.log('Setting complete profile:', completeProfile);
+        setProfile(completeProfile);
+        return completeProfile;
+      } else {
+        throw new Error('Invalid response format from server');
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
       setError(error.message);

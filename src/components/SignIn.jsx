@@ -21,6 +21,7 @@ import {
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
+import { FaArrowLeft } from 'react-icons/fa';
 
 const CHICAGO_NEIGHBORHOODS = [
   'Lincoln Park', 'Wicker Park', 'Lakeview', 'Logan Square', 'River North',
@@ -163,97 +164,118 @@ const SignIn = () => {
       document.body.appendChild(script);
     };
 
-    if (!window.google) {
-      loadGoogleScript();
-    } else {
-      console.log('[Google Init] Google object already exists, initializing directly');
-      initializeGoogleSignIn();
+    // Only initialize Google auth if we're on the email step
+    if (step === 'email' && !isLoading) {
+      if (!window.google) {
+        loadGoogleScript();
+      } else {
+        console.log('[Google Init] Google object already exists, initializing directly');
+        initializeGoogleSignIn();
+      }
     }
-  }, [toast]);
+  }, [step, isLoading, toast]);
 
   const handleGoogleSignIn = async (response) => {
     try {
-      // Decode the JWT token to get the email
-      const base64Url = response.credential.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      const payload = JSON.parse(jsonPayload);
-      const googleEmail = payload.email; // Store the email from Google
-      console.log('[Google Callback] Decoded payload:', {
-        email: googleEmail,
-        name: payload.name,
-        picture: payload.picture
-      });
+      console.log('Google Sign-In response:', response);
+      const credential = response.credential;
+      console.log('Sending credential to backend...');
 
+      // Send the credential to our backend
       const result = await fetch('http://localhost:3002/api/auth/google', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ credential: response.credential }),
+        body: JSON.stringify({ credential }),
       });
 
+      console.log('Backend response status:', result.status);
       const data = await result.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
+      console.log('Backend response data:', data);
+
+      if (!result.ok) {
+        throw new Error(data.error || 'Failed to authenticate with Google');
       }
 
-      if (data.success) {
-        // Set the user in context
-        setProfile(data.user);
+      if (data.success && data.user) {
+        console.log('Google auth successful, user data:', data.user);
         
-        // If it's a new user (no bio), pre-fill the form and go to profile step
-        if (!data.user.bio) {
-          // Ensure we're setting the email from the Google response
-          setFormData(prev => ({
-            ...prev,
-            email: googleEmail,  // Use the stored Google email
-            name: data.user.name || '',
-            picture: data.user.picture || '',
-            age: data.user.age || '',
-            gender: data.user.gender || '',
-            location: data.user.location || '',
-            occupation: data.user.occupation || '',
-            education: data.user.education || '',
-            bio: data.user.bio || '',
-            interests: data.user.interests || [],
-            hobbies: data.user.hobbies || [],
-            languages: data.user.languages || [],
-            relationshipGoals: data.user.relationshipGoals || '',
-            smoking: data.user.smoking || '',
-            drinking: data.user.drinking || '',
-            firstDateIdeas: data.user.firstDateIdeas || [],
-            lookingFor: data.user.lookingFor || ''
-          }));
-          setStep('profile');
+        // Store the email for profile creation if needed
+        localStorage.setItem('googleEmail', data.user.email);
+        
+        // Ensure the user object has all required fields
+        const completeUser = {
+          name: data.user.name || '',
+          age: data.user.age || '',
+          gender: data.user.gender || '',
+          lookingFor: data.user.lookingFor || '',
+          location: data.user.location || '',
+          occupation: data.user.occupation || '',
+          education: data.user.education || '',
+          bio: data.user.bio || '',
+          interests: Array.isArray(data.user.interests) ? data.user.interests : [],
+          hobbies: Array.isArray(data.user.hobbies) ? data.user.hobbies : [],
+          languages: Array.isArray(data.user.languages) ? data.user.languages : [],
+          photos: Array.isArray(data.user.photos) ? data.user.photos : [],
+          relationshipGoals: data.user.relationshipGoals || '',
+          smoking: data.user.smoking || '',
+          drinking: data.user.drinking || '',
+          firstDateIdeas: Array.isArray(data.user.firstDateIdeas) ? data.user.firstDateIdeas : [],
+          personality: data.user.personality || {},
+          ...data.user
+        };
+        
+        // Set the profile in context
+        console.log('Setting profile in context:', completeUser);
+        setProfile(completeUser);
+        
+        // Check if user has a bio to determine if profile is complete
+        if (completeUser.bio) {
+          console.log('User has bio, navigating to waiting page');
+          // Show success message
           toast({
-            title: "Welcome!",
-            description: "Please complete your profile to get started.",
-            status: "info",
-            duration: 5000,
-            isClosable: true,
-          });
-        } else {
-          // Existing user, go to waiting screen
-          navigate('/waiting');
-          toast({
-            title: "Welcome back!",
-            description: "You have been successfully signed in.",
-            status: "success",
+            title: 'Welcome back!',
+            description: 'Successfully signed in with Google',
+            status: 'success',
             duration: 3000,
             isClosable: true,
           });
+          
+          // Navigate to waiting page for users with complete profiles
+          navigate('/waiting', { replace: true });
+        } else {
+          console.log('User needs to complete profile (no bio)');
+          // Show message about completing profile
+          toast({
+            title: 'Complete your profile',
+            description: 'Please fill out your profile information to continue',
+            status: 'info',
+            duration: 3000,
+            isClosable: true,
+          });
+          
+          // Pre-fill the form with Google data
+          setFormData(prev => ({
+            ...prev,
+            name: completeUser.name || '',
+            email: completeUser.email || '',
+            picture: completeUser.picture || ''
+          }));
+          
+          // Move to profile step
+          setStep('profile');
         }
+      } else {
+        console.error('Invalid response from server:', data);
+        throw new Error('Invalid response from server');
       }
     } catch (error) {
       console.error('Google Sign-In error:', error);
       toast({
-        title: "Sign in failed",
-        description: error.message || "Failed to sign in with Google",
-        status: "error",
+        title: 'Error',
+        description: error.message,
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
@@ -351,11 +373,51 @@ const SignIn = () => {
       const data = await response.json();
       console.log('Sign in success response:', data);
 
-      if (data.isNewUser) {
-        setStep('profile');
+      if (data.success && data.user) {
+        // Set the profile in context with the complete data
+        const completeUser = {
+          name: data.user.name || '',
+          age: data.user.age || '',
+          gender: data.user.gender || '',
+          lookingFor: data.user.lookingFor || '',
+          location: data.user.location || '',
+          occupation: data.user.occupation || '',
+          education: data.user.education || '',
+          bio: data.user.bio || '',
+          interests: Array.isArray(data.user.interests) ? data.user.interests : [],
+          hobbies: Array.isArray(data.user.hobbies) ? data.user.hobbies : [],
+          languages: Array.isArray(data.user.languages) ? data.user.languages : [],
+          photos: Array.isArray(data.user.photos) ? data.user.photos : [],
+          relationshipGoals: data.user.relationshipGoals || '',
+          smoking: data.user.smoking || '',
+          drinking: data.user.drinking || '',
+          firstDateIdeas: Array.isArray(data.user.firstDateIdeas) ? data.user.firstDateIdeas : [],
+          personality: data.user.personality || {},
+          ...data.user
+        };
+        
+        console.log('Setting profile in context:', completeUser);
+        setProfile(completeUser);
+        
+        if (data.hasCompleteProfile) {
+          console.log('User has complete profile, navigating to waiting page');
+          // Show success message
+          toast({
+            title: 'Welcome back!',
+            description: 'Successfully signed in',
+            status: 'success',
+            duration: 3000,
+            isClosable: true,
+          });
+          
+          // Navigate to waiting page
+          navigate('/waiting', { replace: true });
+        } else {
+          console.log('User needs to complete profile');
+          setStep('profile');
+        }
       } else {
-        setProfile(data.profile);
-        navigate('/waiting');
+        throw new Error('Invalid response format from server');
       }
     } catch (error) {
       console.error('Sign in error:', error);
@@ -417,52 +479,69 @@ const SignIn = () => {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    if (!validateProfile()) return;
-
     setIsLoading(true);
     try {
-      // Create profile for email sign-up
-      const response = await fetch('http://localhost:3002/api/profiles', {
+      // Get the email from either the form or Google auth
+      const userEmail = formData.email || localStorage.getItem('googleEmail');
+      if (!userEmail) {
+        throw new Error('Email is required to create profile');
+      }
+
+      // First, try to create the profile
+      const createResponse = await fetch('http://localhost:3002/api/profiles', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
-          ...formData,  // Send formData directly, not nested under profileData
-          email: formData.email || email  // Use email from formData or state
+          email: userEmail,
+          ...formData
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create profile');
+      if (!createResponse.ok) {
+        throw new Error(`HTTP error! status: ${createResponse.status}`);
       }
 
-      const data = await response.json();
-      console.log('Profile creation response:', data);
-      
-      // Set the profile in context with the complete data
-      setProfile(data);
-      
-      // Show success message
-      toast({
-        title: 'Profile created successfully',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
+      const createData = await createResponse.json();
+      console.log('Profile created:', createData);
+
+      // Then update the profile with any additional data
+      const updateResponse = await fetch('http://localhost:3002/api/profiles/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          email: userEmail,
+          profileData: formData
+        }),
       });
 
-      // Wait a moment to ensure the profile is set in context
-      await new Promise(resolve => setTimeout(resolve, 500));
+      if (!updateResponse.ok) {
+        throw new Error(`HTTP error! status: ${updateResponse.status}`);
+      }
+
+      const updateData = await updateResponse.json();
+      console.log('Profile updated:', updateData);
+
+      // Set the profile in context
+      setProfile(updateData.user);
+
+      // Clear the Google email from localStorage
+      localStorage.removeItem('googleEmail');
 
       // Navigate to waiting page
-      console.log('Navigating to waiting page with profile:', data);
       navigate('/waiting', { replace: true });
     } catch (error) {
-      console.error('Profile creation error:', error);
+      console.error('Profile update error:', error);
       toast({
-        title: 'Error',
+        title: "Error updating profile",
         description: error.message,
-        status: 'error',
-        duration: 5000,
+        status: "error",
+        duration: 3000,
         isClosable: true,
       });
     } finally {
@@ -564,16 +643,20 @@ const SignIn = () => {
 
           {step === 'password' && (
             <form onSubmit={handlePasswordSubmit} style={{ width: '100%' }}>
-              <VStack spacing={6}>
+              <VStack spacing={4} width="100%">
+                <Text fontSize="lg" fontWeight="bold" color="gray.600">
+                  Current Email: {email}
+                </Text>
                 <Button
+                  variant="link"
+                  colorScheme="blue"
                   onClick={() => setStep('email')}
-                  variant="outline"
-                  colorScheme="gray"
-                  width="100%"
-                  size={buttonSize}
+                  leftIcon={<FaArrowLeft />}
                 >
                   Back to Email
                 </Button>
+              </VStack>
+              <VStack spacing={6}>
                 <FormControl isRequired>
                   <FormLabel fontSize={{ base: 'sm', md: 'md' }}>Password</FormLabel>
                   <Input

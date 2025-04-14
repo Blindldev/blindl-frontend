@@ -32,8 +32,10 @@ import {
   ModalHeader,
   ModalBody,
   ModalCloseButton,
+  Center,
+  Link,
 } from '@chakra-ui/react';
-import { FaEdit, FaMapMarkerAlt, FaBriefcase, FaGraduationCap, FaHeart, FaBrain } from 'react-icons/fa';
+import { FaEdit, FaMapMarkerAlt, FaBriefcase, FaGraduationCap, FaHeart, FaBrain, FaUser, FaInstagram } from 'react-icons/fa';
 import EditFields from './EditFields';
 import { useProfile } from '../context/ProfileContext';
 import { useNavigate } from 'react-router-dom';
@@ -92,12 +94,15 @@ const WaitingScreen = () => {
 
   const handleProfileUpdate = async (updatedProfile) => {
     try {
-      console.log('Starting profile update with data:', updatedProfile);
-      
+      console.log('Starting profile update...');
+      console.log('Current profile email:', profile.email);
+      console.log('Profile data to update:', updatedProfile);
+
       const response = await fetch('http://localhost:3002/api/profiles/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           email: profile.email,
@@ -106,31 +111,42 @@ const WaitingScreen = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Profile update successful:', data);
-      
-      if (data.success && data.user) {
-        setProfile(data.user);
-        setIsProfileModalOpen(false);
-        toast({
-          title: 'Profile updated successfully',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
+      if (data.success) {
+        // Fetch the latest profile data
+        const profileResponse = await fetch('http://localhost:3002/api/profiles/current', {
+          headers: {
+            'Accept': 'application/json'
+          }
         });
-      } else {
-        throw new Error('Invalid response format from server');
+
+        if (!profileResponse.ok) {
+          throw new Error(`HTTP error! status: ${profileResponse.status}`);
+        }
+
+        const profileData = await profileResponse.json();
+        if (profileData.success) {
+          setProfile(profileData.user);
+          toast({
+            title: "Profile updated",
+            description: "Your profile has been updated successfully.",
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+          });
+          setIsProfileModalOpen(false);
+        }
       }
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
-        title: 'Error updating profile',
+        title: "Error updating profile",
         description: error.message,
-        status: 'error',
-        duration: 5000,
+        status: "error",
+        duration: 3000,
         isClosable: true,
       });
     }
@@ -146,6 +162,84 @@ const WaitingScreen = () => {
       duration: 3000,
       isClosable: true,
     });
+  };
+
+  const handlePhotoClick = async () => {
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const formData = new FormData();
+          formData.append('photo', file);
+          formData.append('email', profile.email);
+
+          const response = await fetch('http://localhost:3002/api/profiles/update-photo', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to update photo');
+          }
+
+          const data = await response.json();
+          console.log('Photo update response:', data);
+
+          if (data.success) {
+            // Update the profile through the update endpoint
+            const updateResponse = await fetch('http://localhost:3002/api/profiles/update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: profile.email,
+                profileData: {
+                  ...profile,
+                  photos: [data.photoUrl, ...(profile.photos || [])].slice(0, 5) // Keep only the 5 most recent photos
+                }
+              }),
+            });
+
+            if (!updateResponse.ok) {
+              throw new Error('Failed to update profile with new photo');
+            }
+
+            const updateData = await updateResponse.json();
+            console.log('Profile update response:', updateData);
+
+            if (updateData.success) {
+              // Update the profile in context
+              setProfile(prev => ({
+                ...prev,
+                photos: [data.photoUrl, ...(prev.photos || [])].slice(0, 5)
+              }));
+
+              toast({
+                title: 'Success',
+                description: 'Profile photo updated successfully',
+                status: 'success',
+                duration: 3000,
+                isClosable: true,
+              });
+            }
+          }
+        }
+      };
+      input.click();
+    } catch (error) {
+      console.error('Error updating photo:', error);
+      toast({
+        title: 'Error',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   if (isLoading) {
@@ -198,138 +292,188 @@ const WaitingScreen = () => {
           </HStack>
         </HStack>
         
-        <Box w="100%" bg="white" p={6} borderRadius="lg" boxShadow="md">
-          <VStack spacing={6} align="start">
-            <HStack spacing={4} align="start">
-              <Avatar
-                size="xl"
-                src={profile.picture}
-                name={profile.name}
-              />
-              <Box flex="1">
-                <HStack justify="space-between" align="center">
-                  <Box>
-                    <Text fontSize="xl" fontWeight="bold">{profile.name}</Text>
-                    <Text color="gray.600">{profile.age} years old</Text>
-                    <HStack>
-                      <Icon as={FaMapMarkerAlt} color="gray.500" />
-                      <Text color="gray.600">{profile.location}</Text>
-                    </HStack>
-                    {profile.occupation && (
-                      <HStack>
-                        <Icon as={FaBriefcase} color="gray.500" />
-                        <Text color="gray.600">{profile.occupation}</Text>
-                      </HStack>
-                    )}
-                    {profile.education && (
-                      <HStack>
-                        <Icon as={FaGraduationCap} color="gray.500" />
-                        <Text color="gray.600">{profile.education}</Text>
-                      </HStack>
-                    )}
-                  </Box>
-                  <VStack align="center">
-                    <IconButton
-                      aria-label="Edit profile"
-                      icon={<FaEdit />}
-                      onClick={() => setIsProfileModalOpen(true)}
-                      colorScheme="blue"
-                      size="lg"
-                    />
-                    <Text fontSize="sm" color="gray.500">Edit Profile Information</Text>
-                  </VStack>
-                </HStack>
-              </Box>
-            </HStack>
-              
-            <VStack spacing={8} align="stretch">
-              <Box textAlign="center">
-                <Heading size="lg" mb={4}>Finding you a good match...</Heading>
-                <Text color="gray.500" mb={6}>
-                  We're searching through our database to find someone who shares your interests and values.
-                </Text>
-                
-                {/* Cycling blurred photos */}
-                <Box position="relative" height="75px" mb={8}>
+        <Box
+          p={6}
+          borderRadius="lg"
+          boxShadow="md"
+          bg="white"
+          position="relative"
+        >
+          <HStack justify="space-between" align="center" mb={4}>
+            <Heading size="lg">Your Profile</Heading>
+            <Button
+              colorScheme="blue"
+              onClick={() => setIsProfileModalOpen(true)}
+              size="sm"
+              rightIcon={<FaEdit />}
+            >
+              Edit Profile
+            </Button>
+          </HStack>
+
+          <HStack spacing={8} align="start">
+            <Box position="relative">
+              <Box
+                position="relative"
+                width="150px"
+                height="150px"
+                borderRadius="full"
+                overflow="hidden"
+                cursor="pointer"
+                onClick={handlePhotoClick}
+                border="2px solid"
+                borderColor="gray.200"
+                _hover={{ borderColor: 'blue.500' }}
+              >
+                {profile.photos && profile.photos.length > 0 ? (
                   <Image
-                    src={samplePhotos[currentPhotoIndex]}
-                    alt="Potential match"
-                    boxSize="75px"
+                    src={profile.photos[0]}
+                    alt="Profile"
+                    width="100%"
+                    height="100%"
                     objectFit="cover"
-                    borderRadius="full"
-                    filter="blur(8px)"
-                    position="absolute"
-                    top="50%"
-                    left="50%"
-                    transform="translate(-50%, -50%)"
-                    opacity={0.7}
-                    transition="opacity 0.5s ease-in-out"
                   />
+                ) : (
+                  <Center width="100%" height="100%" bg="gray.100">
+                    <Icon as={FaUser} boxSize={8} color="gray.400" />
+                  </Center>
+                )}
+                <Box
+                  position="absolute"
+                  bottom="0"
+                  left="0"
+                  right="0"
+                  bg="rgba(0, 0, 0, 0.5)"
+                  color="white"
+                  p={2}
+                  textAlign="center"
+                  fontSize="sm"
+                >
+                  Click to update photo
                 </Box>
               </Box>
+            </Box>
 
-              <Divider />
-
-              <Box>
-                <Heading size="md" mb={4}>About Me</Heading>
-                <Text>{profile.bio || 'No bio available'}</Text>
-
-                <Text fontSize="lg" fontWeight="bold">Interests</Text>
-                <Wrap spacing={2}>
-                  {(profile.interests || []).map((interest, index) => (
-                    <WrapItem key={index}>
-                      <Tag size="md" colorScheme="blue" borderRadius="full">
-                        <TagLabel>{interest}</TagLabel>
-                      </Tag>
-                    </WrapItem>
-                  ))}
-                </Wrap>
-
-                <Text fontSize="lg" fontWeight="bold">Hobbies</Text>
-                <Wrap spacing={2}>
-                  {(profile.hobbies || []).map((hobby, index) => (
-                    <WrapItem key={index}>
-                      <Tag size="md" colorScheme="green" borderRadius="full">
-                        <TagLabel>{hobby}</TagLabel>
-                      </Tag>
-                    </WrapItem>
-                  ))}
-                </Wrap>
-
-                <Text fontSize="lg" fontWeight="bold">Languages</Text>
-                <Wrap spacing={2}>
-                  {(profile.languages || []).map((language, index) => (
-                    <WrapItem key={index}>
-                      <Tag size="md" colorScheme="purple" borderRadius="full">
-                        <TagLabel>{language}</TagLabel>
-                      </Tag>
-                    </WrapItem>
-                  ))}
-                </Wrap>
-
-                <Text fontSize="lg" fontWeight="bold">First Date Ideas</Text>
-                <Wrap spacing={2}>
-                  {profile.firstDateIdeas.map((idea, index) => (
-                    <WrapItem key={index}>
-                      <Tag size="md" colorScheme="orange" borderRadius="full">
-                        <TagLabel>{idea}</TagLabel>
-                      </Tag>
-                    </WrapItem>
-                  ))}
-                </Wrap>
-
-                <Box>
-                  <Text fontWeight="bold" mb={2}>Preferences</Text>
-                  <VStack align="start" spacing={2}>
-                    <Text>Looking for: {profile.lookingFor}</Text>
-                    <Text>Relationship goals: {profile.relationshipGoals}</Text>
-                    <Text>Smoking: {profile.smoking}</Text>
-                    <Text>Drinking: {profile.drinking}</Text>
-                  </VStack>
-                </Box>
-              </Box>
+            <VStack align="start" flex={1} spacing={4}>
+              <HStack>
+                <Text fontSize="xl" fontWeight="bold">👤 {profile?.name || 'Anonymous'}</Text>
+              </HStack>
+              <HStack>
+                <Text>🎂 {profile?.age} • {profile?.gender}</Text>
+              </HStack>
+              <HStack>
+                <Text>📍 {profile?.location}</Text>
+              </HStack>
+              <HStack>
+                <Text>💼 {profile?.occupation}</Text>
+              </HStack>
+              <HStack>
+                <Text>🎓 {profile?.education}</Text>
+              </HStack>
             </VStack>
-          </VStack>
+          </HStack>
+
+          <Box mt={6}>
+            <Text fontWeight="bold" fontSize="lg" mb={2} color="blue.500">
+              🔍 Searching for a match
+            </Text>
+            <Text color="gray.600">
+              We're looking for someone who matches your preferences and interests. 
+              This process can take a few weeks and is not guaranteed, but we do our best to find the perfect match for you!
+            </Text>
+            <Box mt={4} position="relative" width="300px" height="300px" mx="auto">
+              <Image
+                src={samplePhotos[currentPhotoIndex]}
+                alt="Potential match"
+                width="100%"
+                height="100%"
+                objectFit="cover"
+                borderRadius="lg"
+                filter="blur(10px)"
+                transition="all 0.5s ease-in-out"
+              />
+              <Box
+                position="absolute"
+                top="50%"
+                left="50%"
+                transform="translate(-50%, -50%)"
+                textAlign="center"
+                color="white"
+                textShadow="0 0 10px rgba(0,0,0,0.5)"
+              >
+                <Text fontSize="xl" fontWeight="bold">Finding Your Match</Text>
+                <Text fontSize="sm">Please be patient while we search</Text>
+              </Box>
+            </Box>
+            <Box mt={4} textAlign="center">
+              <HStack justify="center" spacing={2}>
+                <FaInstagram size={24} color="#E1306C" />
+                <Link 
+                  href="https://www.instagram.com/blinddatepottery" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  color="blue.500"
+                  fontWeight="medium"
+                >
+                  @blinddatepottery
+                </Link>
+              </HStack>
+              <Text fontSize="sm" color="gray.600" mt={2}>
+                Follow us on Instagram for updates on the future of this app
+              </Text>
+            </Box>
+          </Box>
+
+          <Box mt={6}>
+            <Text fontWeight="bold" fontSize="lg" mb={2} color="blue.500">
+              👤 About Me
+            </Text>
+            <Text>{profile?.bio}</Text>
+          </Box>
+
+          <Box mt={6}>
+            <Text fontWeight="bold" fontSize="lg" mb={2}>🎯 Interests</Text>
+            <Wrap>
+              {profile?.interests?.map((interest, index) => (
+                <WrapItem key={index}>
+                  <Tag colorScheme="blue">{interest}</Tag>
+                </WrapItem>
+              ))}
+            </Wrap>
+          </Box>
+
+          <Box mt={6}>
+            <Text fontWeight="bold" fontSize="lg" mb={2}>🎨 Hobbies</Text>
+            <Wrap>
+              {profile?.hobbies?.map((hobby, index) => (
+                <WrapItem key={index}>
+                  <Tag colorScheme="green">{hobby}</Tag>
+                </WrapItem>
+              ))}
+            </Wrap>
+          </Box>
+
+          <Box mt={6}>
+            <Text fontWeight="bold" fontSize="lg" mb={2}>🌐 Languages</Text>
+            <Wrap>
+              {profile?.languages?.map((language, index) => (
+                <WrapItem key={index}>
+                  <Tag colorScheme="purple">{language}</Tag>
+                </WrapItem>
+              ))}
+            </Wrap>
+          </Box>
+
+          <Box mt={6}>
+            <Text fontWeight="bold" fontSize="lg" mb={2}>💡 First Date Ideas</Text>
+            <Wrap>
+              {profile?.firstDateIdeas?.map((idea, index) => (
+                <WrapItem key={index}>
+                  <Tag colorScheme="orange">{idea}</Tag>
+                </WrapItem>
+              ))}
+            </Wrap>
+          </Box>
         </Box>
 
         <Modal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} size="xl">

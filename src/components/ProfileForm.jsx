@@ -22,6 +22,8 @@ import {
   Box,
   Switch,
   Text,
+  Wrap,
+  WrapItem,
 } from '@chakra-ui/react';
 
 const CHICAGO_NEIGHBORHOODS = [
@@ -144,44 +146,35 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
         <ModalCloseButton />
         <ModalBody pb={6}>
           <form onSubmit={handleSubmit}>
-            <VStack spacing={4}>
-              <FormControl>
-                <FormLabel>Profile Picture</FormLabel>
-                <Avatar
-                  size="xl"
-                  src={initialData?.picture}
-                  name={formData.name}
-                />
-              </FormControl>
-
-              <FormControl isInvalid={errors.name}>
-                <FormLabel>Name</FormLabel>
+            <VStack spacing={6}>
+              <FormControl isRequired>
+                <FormLabel>👤 Name</FormLabel>
                 <Input
-                  name="name"
                   value={formData.name}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Your full name"
+                  size="lg"
                 />
               </FormControl>
 
-              <FormControl isInvalid={errors.age}>
-                <FormLabel>Age</FormLabel>
+              <FormControl isRequired>
+                <FormLabel>🎂 Age</FormLabel>
                 <Input
-                  name="age"
                   type="number"
                   value={formData.age}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData({ ...formData, age: e.target.value })}
                   placeholder="Your age"
+                  size="lg"
                 />
               </FormControl>
 
-              <FormControl isInvalid={errors.gender}>
-                <FormLabel>Gender</FormLabel>
+              <FormControl isRequired>
+                <FormLabel>👫 Gender</FormLabel>
                 <Select
-                  name="gender"
                   value={formData.gender}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                   placeholder="Select gender"
+                  size="lg"
                 >
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -189,168 +182,145 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
                 </Select>
               </FormControl>
 
-              <FormControl isInvalid={errors.location}>
-                <FormLabel>Location</FormLabel>
-                <Select
-                  name="location"
+              <FormControl isRequired>
+                <FormLabel>📍 Location</FormLabel>
+                <Input
                   value={formData.location}
-                  onChange={handleChange}
-                  placeholder="Select your neighborhood"
-                >
-                  {CHICAGO_NEIGHBORHOODS.map(neighborhood => (
-                    <option key={neighborhood} value={neighborhood}>{neighborhood}</option>
-                  ))}
-                </Select>
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="Your location"
+                  size="lg"
+                />
               </FormControl>
 
-              <FormControl isInvalid={errors.occupation}>
-                <FormLabel>Occupation</FormLabel>
+              <FormControl>
+                <FormLabel>💼 Occupation</FormLabel>
                 <Input
-                  name="occupation"
                   value={formData.occupation}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
                   placeholder="Your occupation"
+                  size="lg"
                 />
               </FormControl>
 
-              <FormControl isInvalid={errors.education}>
-                <FormLabel>Education</FormLabel>
+              <FormControl>
+                <FormLabel>🎓 Education</FormLabel>
                 <Input
-                  name="education"
                   value={formData.education}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData({ ...formData, education: e.target.value })}
                   placeholder="Your education"
+                  size="lg"
                 />
               </FormControl>
 
-              <FormControl isInvalid={errors.bio}>
-                <FormLabel>About Me</FormLabel>
+              <FormControl isRequired>
+                <FormLabel>📝 Bio</FormLabel>
                 <Textarea
-                  name="bio"
                   value={formData.bio}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   placeholder="Tell us about yourself"
+                  size="lg"
                   rows={4}
                 />
               </FormControl>
 
-              <FormControl isInvalid={errors.lookingFor}>
-                <FormLabel>Looking For</FormLabel>
-                <Select
-                  name="lookingFor"
-                  value={formData.lookingFor}
-                  onChange={handleChange}
-                  placeholder="What are you looking for?"
-                >
-                  <option value="dating">Dating</option>
-                  <option value="friendship">Friendship</option>
-                  <option value="casual">Casual</option>
-                  <option value="long-term">Long-term relationship</option>
-                  <option value="marriage">Marriage</option>
-                </Select>
-              </FormControl>
-
-              <FormControl isInvalid={errors.relationshipGoals}>
-                <FormLabel>Relationship Goals</FormLabel>
-                <Select
-                  name="relationshipGoals"
-                  value={formData.relationshipGoals}
-                  onChange={handleChange}
-                  placeholder="What are your relationship goals?"
-                >
-                  <option value="long-term">Long-term relationship</option>
-                  <option value="marriage">Marriage</option>
-                  <option value="short-term">Short-term relationship</option>
-                  <option value="friendship">Friendship</option>
-                </Select>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel>Interests</FormLabel>
+              <FormControl isRequired>
+                <FormLabel>🎯 Interests</FormLabel>
                 <HStack>
                   <Input
                     value={newInterest}
                     onChange={(e) => setNewInterest(e.target.value)}
                     placeholder="Add an interest"
+                    size="lg"
                   />
                   <Button onClick={() => addItem('interests', newInterest, setNewInterest)}>
                     Add
                   </Button>
                 </HStack>
-                <Box mt={2}>
+                <Wrap mt={2}>
                   {formData.interests.map((interest, index) => (
-                    <Tag key={index} mr={2} mb={2}>
-                      <TagLabel>{interest}</TagLabel>
-                      <TagCloseButton onClick={() => removeItem('interests', interest)} />
-                    </Tag>
+                    <WrapItem key={index}>
+                      <Tag colorScheme="blue" size="lg">
+                        {interest}
+                        <TagCloseButton onClick={() => removeItem('interests', interest)} />
+                      </Tag>
+                    </WrapItem>
                   ))}
-                </Box>
+                </Wrap>
               </FormControl>
 
-              <FormControl>
-                <FormLabel>Hobbies</FormLabel>
+              <FormControl isRequired>
+                <FormLabel>🎨 Hobbies</FormLabel>
                 <HStack>
                   <Input
                     value={newHobby}
                     onChange={(e) => setNewHobby(e.target.value)}
                     placeholder="Add a hobby"
+                    size="lg"
                   />
                   <Button onClick={() => addItem('hobbies', newHobby, setNewHobby)}>
                     Add
                   </Button>
                 </HStack>
-                <Box mt={2}>
+                <Wrap mt={2}>
                   {formData.hobbies.map((hobby, index) => (
-                    <Tag key={index} mr={2} mb={2}>
-                      <TagLabel>{hobby}</TagLabel>
-                      <TagCloseButton onClick={() => removeItem('hobbies', hobby)} />
-                    </Tag>
+                    <WrapItem key={index}>
+                      <Tag colorScheme="green" size="lg">
+                        {hobby}
+                        <TagCloseButton onClick={() => removeItem('hobbies', hobby)} />
+                      </Tag>
+                    </WrapItem>
                   ))}
-                </Box>
+                </Wrap>
               </FormControl>
 
-              <FormControl>
-                <FormLabel>Languages</FormLabel>
+              <FormControl isRequired>
+                <FormLabel>🌐 Languages</FormLabel>
                 <HStack>
                   <Input
                     value={newLanguage}
                     onChange={(e) => setNewLanguage(e.target.value)}
                     placeholder="Add a language"
+                    size="lg"
                   />
                   <Button onClick={() => addItem('languages', newLanguage, setNewLanguage)}>
                     Add
                   </Button>
                 </HStack>
-                <Box mt={2}>
+                <Wrap mt={2}>
                   {formData.languages.map((language, index) => (
-                    <Tag key={index} mr={2} mb={2}>
-                      <TagLabel>{language}</TagLabel>
-                      <TagCloseButton onClick={() => removeItem('languages', language)} />
-                    </Tag>
+                    <WrapItem key={index}>
+                      <Tag colorScheme="purple" size="lg">
+                        {language}
+                        <TagCloseButton onClick={() => removeItem('languages', language)} />
+                      </Tag>
+                    </WrapItem>
                   ))}
-                </Box>
+                </Wrap>
               </FormControl>
 
-              <FormControl>
-                <FormLabel>First Date Ideas</FormLabel>
+              <FormControl isRequired>
+                <FormLabel>💡 First Date Ideas</FormLabel>
                 <HStack>
                   <Input
                     value={newDateIdea}
                     onChange={(e) => setNewDateIdea(e.target.value)}
                     placeholder="Add a first date idea"
+                    size="lg"
                   />
                   <Button onClick={() => addItem('firstDateIdeas', newDateIdea, setNewDateIdea)}>
                     Add
                   </Button>
                 </HStack>
-                <Box mt={2}>
+                <Wrap mt={2}>
                   {formData.firstDateIdeas.map((idea, index) => (
-                    <Tag key={index} mr={2} mb={2}>
-                      <TagLabel>{idea}</TagLabel>
-                      <TagCloseButton onClick={() => removeItem('firstDateIdeas', idea)} />
-                    </Tag>
+                    <WrapItem key={index}>
+                      <Tag colorScheme="orange" size="lg">
+                        {idea}
+                        <TagCloseButton onClick={() => removeItem('firstDateIdeas', idea)} />
+                      </Tag>
+                    </WrapItem>
                   ))}
-                </Box>
+                </Wrap>
               </FormControl>
 
               <FormControl>
@@ -417,13 +387,22 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
                 </VStack>
               </FormControl>
 
-              <Button 
-                type="submit" 
-                colorScheme="blue" 
-                width="full"
-              >
-                Save Changes
-              </Button>
+              <HStack spacing={4} width="100%" justify="flex-end">
+                <Button
+                  colorScheme="gray"
+                  onClick={onClose}
+                  size="lg"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  colorScheme="blue"
+                  type="submit"
+                  size="lg"
+                >
+                  Save Changes
+                </Button>
+              </HStack>
             </VStack>
           </form>
         </ModalBody>
