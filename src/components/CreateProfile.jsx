@@ -51,6 +51,7 @@ const CreateProfile = () => {
     drinking: '',
     firstDateIdeas: [],
     photos: [],
+    picture: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -71,12 +72,23 @@ const CreateProfile = () => {
 
   useEffect(() => {
     if (!email) {
+      console.log('No email found in state, redirecting to home');
       navigate('/');
+    } else {
+      // Pre-fill the form with Google data if available
+      if (location.state?.name) {
+        setFormData(prev => ({
+          ...prev,
+          name: location.state.name,
+          picture: location.state.picture
+        }));
+      }
     }
-  }, [email, navigate]);
+  }, [email, navigate, location.state]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(`Updating field ${name} to:`, value);
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -85,6 +97,7 @@ const CreateProfile = () => {
 
   const addToList = (listName, value, setTempValue) => {
     if (value.trim()) {
+      console.log(`Adding ${value} to ${listName}`);
       setFormData(prev => ({
         ...prev,
         [listName]: [...prev[listName], value.trim()]
@@ -94,6 +107,7 @@ const CreateProfile = () => {
   };
 
   const removeFromList = (listName, index) => {
+    console.log(`Removing item at index ${index} from ${listName}`);
     setFormData(prev => ({
       ...prev,
       [listName]: prev[listName].filter((_, i) => i !== index)
@@ -121,52 +135,53 @@ const CreateProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      console.log('Form validation failed:', errors);
+      return;
+    }
 
-    setIsLoading(true);
     try {
+      console.log('Starting profile creation with data:', formData);
+      setIsLoading(true);
+      
       const response = await fetch('http://localhost:3002/api/profiles', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          email,
-          ...formData,
+          email: email,
+          profileData: formData
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create profile');
+        const errorData = await response.json();
+        console.error('Profile creation failed:', errorData);
+        throw new Error(errorData.message || 'Failed to create profile');
       }
 
       const data = await response.json();
-      console.log('Profile creation response:', data);
+      console.log('Profile creation successful:', data);
       
-      // Update profile in context with the complete profile data
-      const updatedProfile = {
-        ...data,
-        status: 'pending',
-        updatedAt: new Date().toISOString()
-      };
+      // Set the profile in context with the complete data
+      setProfile(data);
       
-      // Set the profile in context
-      setProfile(updatedProfile);
-      
-      // Wait a moment to ensure the profile is set
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      // Show success message
       toast({
         title: 'Profile created successfully',
         status: 'success',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
-
+      
       // Navigate to waiting page
-      navigate('/waiting');
+      console.log('Navigating to waiting page');
+      navigate('/waiting', { replace: true });
     } catch (error) {
-      console.error('Profile creation error:', error);
+      console.error('Error creating profile:', error);
       toast({
-        title: 'Error',
+        title: 'Error creating profile',
         description: error.message,
         status: 'error',
         duration: 5000,

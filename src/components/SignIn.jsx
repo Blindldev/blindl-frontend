@@ -108,7 +108,8 @@ const SignIn = () => {
             },
             auto_select: false,
             cancel_on_tap_outside: true,
-            ux_mode: 'popup'
+            ux_mode: 'popup',
+            itp_support: true
           });
 
           console.log('[Google Init] Initialization complete, rendering button');
@@ -170,73 +171,55 @@ const SignIn = () => {
 
   const handleGoogleSignIn = async (response) => {
     try {
-      setIsLoading(true);
-      console.log('[Google Handler] Starting sign-in process');
-      console.log('[Google Handler] Full response:', response);
-      console.log('[Google Handler] Response type:', typeof response);
-
-      // Check if we have a valid response with a credential
-      if (!response) {
-        console.error('[Google Handler] Response is null or undefined');
-        throw new Error('No response from Google');
-      }
-
-      if (!response.credential) {
-        console.error('[Google Handler] No credential in response. Response keys:', Object.keys(response));
-        throw new Error('No token provided');
-      }
-
-      console.log('[Google Handler] Credential found, length:', response.credential.length);
-      console.log('[Google Handler] Making API request to backend');
-
-      // Send the credential to our backend
-      const result = await fetch('http://localhost:3002/api/auth/google', {
+      console.log('Google Sign-In response:', response);
+      const { credential } = response;
+      
+      const authResponse = await fetch('http://localhost:3002/api/auth/google', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          credential: response.credential // Changed to match backend expectation
-        }),
-        credentials: 'include'
+        body: JSON.stringify({ credential }),
       });
 
-      console.log('[Google Handler] API response status:', result.status);
-
-      if (!result.ok) {
-        const errorData = await result.json();
-        console.error('[Google Handler] API error response:', errorData);
-        throw new Error(errorData.error || 'Failed to sign in with Google');
+      if (!authResponse.ok) {
+        throw new Error('Failed to authenticate with Google');
       }
 
-      const data = await result.json();
-      console.log('[Google Handler] API success response:', data);
+      const data = await authResponse.json();
+      console.log('Auth response:', data);
 
-      if (data.isNewUser) {
-        console.log('[Google Handler] New user detected, setting up profile');
-        setEmail(data.profile.email);
-        if (data.profile.picture) {
-          console.log('[Google Handler] Setting profile picture from Google');
-          setProfilePicture(data.profile.picture);
-        }
-        setStep('profile');
-      } else {
-        console.log('[Google Handler] Existing user, navigating to waiting page');
-        setProfile(data.profile);
-        navigate('/waiting');
-      }
+      // Set the profile in context
+      setProfile(data.profile);
+
+      // Set the email and move to profile step
+      setEmail(data.profile.email);
+      setStep('profile');
+
+      // Pre-fill the form with Google data
+      setFormData(prev => ({
+        ...prev,
+        name: data.profile.name || '',
+        picture: data.profile.picture || ''
+      }));
+
+      // Show success message
+      toast({
+        title: 'Google Sign-In successful',
+        description: 'Please complete your profile',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (error) {
-      console.error('[Google Handler] Error:', error);
-      console.error('[Google Handler] Error stack:', error.stack);
+      console.error('Error during Google Sign-In:', error);
       toast({
         title: 'Error',
-        description: error.message,
+        description: 'Failed to sign in with Google. Please try again.',
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -401,35 +384,41 @@ const SignIn = () => {
 
     setIsLoading(true);
     try {
+      // Create profile for email sign-up
       const response = await fetch('http://localhost:3002/api/profiles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          ...formData,
+          ...formData  // Send formData directly, not nested under profileData
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create profile');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create profile');
       }
 
       const data = await response.json();
       console.log('Profile creation response:', data);
       
-      // Set the profile in context before navigating
-      setProfile(data.profile);
-
+      // Set the profile in context with the complete data
+      setProfile(data);
+      
+      // Show success message
       toast({
         title: 'Profile created successfully',
         status: 'success',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
 
-      // For Google-authenticated users, we don't need to sign in again
-      // Just navigate to the waiting page
-      navigate('/waiting');
+      // Wait a moment to ensure the profile is set in context
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Navigate to waiting page
+      console.log('Navigating to waiting page with profile:', data);
+      navigate('/waiting', { replace: true });
     } catch (error) {
       console.error('Profile creation error:', error);
       toast({

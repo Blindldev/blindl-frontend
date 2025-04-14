@@ -19,7 +19,6 @@ import {
   HStack,
   Text,
   useColorMode,
-  Box,
 } from '@chakra-ui/react';
 import { useProfile } from '../context/ProfileContext';
 
@@ -31,13 +30,6 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
     location: '',
     bio: '',
     lookingFor: '',
-    personality: {
-      extroversion: '',
-      agreeableness: '',
-      conscientiousness: '',
-      neuroticism: '',
-      openness: '',
-    },
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,13 +46,6 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
         location: initialData.location || '',
         bio: initialData.bio || '',
         lookingFor: initialData.lookingFor || '',
-        personality: initialData.personality || {
-          extroversion: '',
-          agreeableness: '',
-          conscientiousness: '',
-          neuroticism: '',
-          openness: '',
-        },
       });
     }
   }, [initialData]);
@@ -73,10 +58,6 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
     if (!formData.bio.trim()) newErrors.bio = 'Bio is required';
     if (!formData.location.trim()) newErrors.location = 'Location is required';
     if (!formData.lookingFor) newErrors.lookingFor = 'Looking for is required';
-    
-    Object.entries(formData.personality).forEach(([trait, value]) => {
-      if (!value) newErrors[`personality.${trait}`] = `${trait} is required`;
-    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -84,21 +65,10 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name.startsWith('personality.')) {
-      const trait = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        personality: {
-          ...prev.personality,
-          [trait]: value,
-        },
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -247,29 +217,6 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
                 </Select>
                 <FormErrorMessage>{errors.lookingFor}</FormErrorMessage>
               </FormControl>
-
-              <Box w="full" pt={4}>
-                <Text fontWeight="bold" mb={4}>Personality Traits</Text>
-                {Object.entries(formData.personality).map(([trait, value]) => (
-                  <FormControl key={trait} isInvalid={!!errors[`personality.${trait}`]}>
-                    <FormLabel color={colorMode === 'light' ? 'gray.700' : 'gray.200'}>
-                      {trait.charAt(0).toUpperCase() + trait.slice(1).replace(/([A-Z])/g, ' $1')}
-                    </FormLabel>
-                    <Select
-                      name={`personality.${trait}`}
-                      value={value}
-                      onChange={handleChange}
-                      placeholder={`Select ${trait} level`}
-                      bg={colorMode === 'light' ? 'white' : 'gray.700'}
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </Select>
-                    <FormErrorMessage>{errors[`personality.${trait}`]}</FormErrorMessage>
-                  </FormControl>
-                ))}
-              </Box>
             </VStack>
           </form>
         </ModalBody>
