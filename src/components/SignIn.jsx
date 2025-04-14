@@ -58,9 +58,9 @@ const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     age: '',
     gender: '',
-    lookingFor: '',
     location: '',
     occupation: '',
     education: '',
@@ -72,6 +72,8 @@ const SignIn = () => {
     smoking: '',
     drinking: '',
     firstDateIdeas: [],
+    lookingFor: '',
+    picture: null
   });
   const [errors, setErrors] = useState({});
   const [tempInterest, setTempInterest] = useState('');
@@ -171,52 +173,87 @@ const SignIn = () => {
 
   const handleGoogleSignIn = async (response) => {
     try {
-      console.log('Google Sign-In response:', response);
-      const { credential } = response;
-      
-      const authResponse = await fetch('http://localhost:3002/api/auth/google', {
+      // Decode the JWT token to get the email
+      const base64Url = response.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const payload = JSON.parse(jsonPayload);
+      const googleEmail = payload.email; // Store the email from Google
+      console.log('[Google Callback] Decoded payload:', {
+        email: googleEmail,
+        name: payload.name,
+        picture: payload.picture
+      });
+
+      const result = await fetch('http://localhost:3002/api/auth/google', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ credential }),
+        body: JSON.stringify({ credential: response.credential }),
       });
 
-      if (!authResponse.ok) {
-        throw new Error('Failed to authenticate with Google');
+      const data = await result.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
       }
 
-      const data = await authResponse.json();
-      console.log('Auth response:', data);
-
-      // Set the profile in context
-      setProfile(data.profile);
-
-      // Set the email and move to profile step
-      setEmail(data.profile.email);
-      setStep('profile');
-
-      // Pre-fill the form with Google data
-      setFormData(prev => ({
-        ...prev,
-        name: data.profile.name || '',
-        picture: data.profile.picture || ''
-      }));
-
-      // Show success message
-      toast({
-        title: 'Google Sign-In successful',
-        description: 'Please complete your profile',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+      if (data.success) {
+        // Set the user in context
+        setProfile(data.user);
+        
+        // If it's a new user (no bio), pre-fill the form and go to profile step
+        if (!data.user.bio) {
+          // Ensure we're setting the email from the Google response
+          setFormData(prev => ({
+            ...prev,
+            email: googleEmail,  // Use the stored Google email
+            name: data.user.name || '',
+            picture: data.user.picture || '',
+            age: data.user.age || '',
+            gender: data.user.gender || '',
+            location: data.user.location || '',
+            occupation: data.user.occupation || '',
+            education: data.user.education || '',
+            bio: data.user.bio || '',
+            interests: data.user.interests || [],
+            hobbies: data.user.hobbies || [],
+            languages: data.user.languages || [],
+            relationshipGoals: data.user.relationshipGoals || '',
+            smoking: data.user.smoking || '',
+            drinking: data.user.drinking || '',
+            firstDateIdeas: data.user.firstDateIdeas || [],
+            lookingFor: data.user.lookingFor || ''
+          }));
+          setStep('profile');
+          toast({
+            title: "Welcome!",
+            description: "Please complete your profile to get started.",
+            status: "info",
+            duration: 5000,
+            isClosable: true,
+          });
+        } else {
+          // Existing user, go to waiting screen
+          navigate('/waiting');
+          toast({
+            title: "Welcome back!",
+            description: "You have been successfully signed in.",
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      }
     } catch (error) {
-      console.error('Error during Google Sign-In:', error);
+      console.error('Google Sign-In error:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to sign in with Google. Please try again.',
-        status: 'error',
+        title: "Sign in failed",
+        description: error.message || "Failed to sign in with Google",
+        status: "error",
         duration: 5000,
         isClosable: true,
       });
@@ -389,8 +426,8 @@ const SignIn = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
-          ...formData  // Send formData directly, not nested under profileData
+          ...formData,  // Send formData directly, not nested under profileData
+          email: formData.email || email  // Use email from formData or state
         }),
       });
 

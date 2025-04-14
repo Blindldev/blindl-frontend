@@ -20,6 +20,8 @@ import {
   TagLabel,
   TagCloseButton,
   Box,
+  Switch,
+  Text,
 } from '@chakra-ui/react';
 
 const CHICAGO_NEIGHBORHOODS = [
@@ -44,6 +46,11 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
     drinking: initialData?.drinking || '',
     firstDateIdeas: initialData?.firstDateIdeas || [],
     lookingFor: initialData?.lookingFor || '',
+    status: initialData?.status || 'pending',
+    settings: {
+      notifications: initialData?.settings?.notifications ?? true,
+      emailUpdates: initialData?.settings?.emailUpdates ?? true
+    }
   });
 
   const [newInterest, setNewInterest] = useState('');
@@ -54,11 +61,21 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
   const toast = useToast();
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setFormData(prev => ({
+        ...prev,
+        settings: {
+          ...prev.settings,
+          [name]: checked
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const addItem = (type, value, setValue) => {
@@ -207,12 +224,13 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
               </FormControl>
 
               <FormControl isInvalid={errors.bio}>
-                <FormLabel>Bio</FormLabel>
+                <FormLabel>About Me</FormLabel>
                 <Textarea
                   name="bio"
                   value={formData.bio}
                   onChange={handleChange}
                   placeholder="Tell us about yourself"
+                  rows={4}
                 />
               </FormControl>
 
@@ -224,9 +242,11 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
                   onChange={handleChange}
                   placeholder="What are you looking for?"
                 >
-                  <option value="relationship">Relationship</option>
+                  <option value="dating">Dating</option>
                   <option value="friendship">Friendship</option>
                   <option value="casual">Casual</option>
+                  <option value="long-term">Long-term relationship</option>
+                  <option value="marriage">Marriage</option>
                 </Select>
               </FormControl>
 
@@ -238,8 +258,8 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
                   onChange={handleChange}
                   placeholder="What are your relationship goals?"
                 >
-                  <option value="marriage">Marriage</option>
                   <option value="long-term">Long-term relationship</option>
+                  <option value="marriage">Marriage</option>
                   <option value="short-term">Short-term relationship</option>
                   <option value="friendship">Friendship</option>
                 </Select>
@@ -359,6 +379,42 @@ const ProfileForm = ({ isOpen, onClose, initialData, onProfileUpdate }) => {
                   <option value="socially">Socially</option>
                   <option value="regularly">Regularly</option>
                 </Select>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Status</FormLabel>
+                <Select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  placeholder="Select status"
+                >
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="inactive">Inactive</option>
+                </Select>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Settings</FormLabel>
+                <VStack align="start" spacing={4}>
+                  <HStack>
+                    <Switch
+                      name="notifications"
+                      isChecked={formData.settings.notifications}
+                      onChange={handleChange}
+                    />
+                    <Text>Enable Notifications</Text>
+                  </HStack>
+                  <HStack>
+                    <Switch
+                      name="emailUpdates"
+                      isChecked={formData.settings.emailUpdates}
+                      onChange={handleChange}
+                    />
+                    <Text>Email Updates</Text>
+                  </HStack>
+                </VStack>
               </FormControl>
 
               <Button 

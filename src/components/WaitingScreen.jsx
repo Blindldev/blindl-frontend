@@ -26,9 +26,15 @@ import {
   useToast,
   useBreakpointValue,
   Image,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
 } from '@chakra-ui/react';
 import { FaEdit, FaMapMarkerAlt, FaBriefcase, FaGraduationCap, FaHeart, FaBrain } from 'react-icons/fa';
-import ProfileForm from './ProfileForm';
+import EditFields from './EditFields';
 import { useProfile } from '../context/ProfileContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -103,17 +109,21 @@ const WaitingScreen = () => {
         throw new Error('Failed to update profile');
       }
 
-      const updatedUser = await response.json();
-      console.log('Profile update successful:', updatedUser);
+      const data = await response.json();
+      console.log('Profile update successful:', data);
       
-      setProfile(updatedUser);
-      setIsProfileModalOpen(false);
-      toast({
-        title: 'Profile updated successfully',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+      if (data.success && data.user) {
+        setProfile(data.user);
+        setIsProfileModalOpen(false);
+        toast({
+          title: 'Profile updated successfully',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        throw new Error('Invalid response format from server');
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
@@ -240,11 +250,11 @@ const WaitingScreen = () => {
                 </Text>
                 
                 {/* Cycling blurred photos */}
-                <Box position="relative" height="300px" mb={8}>
+                <Box position="relative" height="75px" mb={8}>
                   <Image
                     src={samplePhotos[currentPhotoIndex]}
                     alt="Potential match"
-                    boxSize="300px"
+                    boxSize="75px"
                     objectFit="cover"
                     borderRadius="full"
                     filter="blur(8px)"
@@ -262,11 +272,11 @@ const WaitingScreen = () => {
 
               <Box>
                 <Heading size="md" mb={4}>About Me</Heading>
-                <Text>{profile.bio}</Text>
+                <Text>{profile.bio || 'No bio available'}</Text>
 
                 <Text fontSize="lg" fontWeight="bold">Interests</Text>
                 <Wrap spacing={2}>
-                  {profile.interests.map((interest, index) => (
+                  {(profile.interests || []).map((interest, index) => (
                     <WrapItem key={index}>
                       <Tag size="md" colorScheme="blue" borderRadius="full">
                         <TagLabel>{interest}</TagLabel>
@@ -277,7 +287,7 @@ const WaitingScreen = () => {
 
                 <Text fontSize="lg" fontWeight="bold">Hobbies</Text>
                 <Wrap spacing={2}>
-                  {profile.hobbies.map((hobby, index) => (
+                  {(profile.hobbies || []).map((hobby, index) => (
                     <WrapItem key={index}>
                       <Tag size="md" colorScheme="green" borderRadius="full">
                         <TagLabel>{hobby}</TagLabel>
@@ -288,7 +298,7 @@ const WaitingScreen = () => {
 
                 <Text fontSize="lg" fontWeight="bold">Languages</Text>
                 <Wrap spacing={2}>
-                  {profile.languages.map((language, index) => (
+                  {(profile.languages || []).map((language, index) => (
                     <WrapItem key={index}>
                       <Tag size="md" colorScheme="purple" borderRadius="full">
                         <TagLabel>{language}</TagLabel>
@@ -322,16 +332,16 @@ const WaitingScreen = () => {
           </VStack>
         </Box>
 
-        {/* Profile Form Modal */}
-        <ProfileForm
-          isOpen={isProfileModalOpen}
-          onClose={() => {
-            console.log('Closing edit profile modal');
-            setIsProfileModalOpen(false);
-          }}
-          initialData={profile}
-          onProfileUpdate={handleProfileUpdate}
-        />
+        <Modal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} size="xl">
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Edit Profile</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <EditFields />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
       </VStack>
     </Box>
   );
